@@ -48,7 +48,7 @@ file_manager.save_to_json("library.json")
 
 # Example of loading library from a JSON file
 file_manager.load_from_json("library.json")
-
+```
 
 ### Classes and Methods 🧩
 
