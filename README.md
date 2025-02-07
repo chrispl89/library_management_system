@@ -99,7 +99,7 @@ file_manager.load_from_json("library.json")
 - `edit_book(self, old_title, new_title=None, new_author=None, new_category=None, username=None)` – Updates a book and records the last modifier.
 - `get_books(self, filter_field=None, filter_value=None, sort_field=None, ascending=True)` – Retrieves books with filtering and sorting.
 
-### Database Schema (SQLite)
+### 💾 Database Schema (SQLite)
 | Column            | Type    | Description                          |
 |-------------------|---------|--------------------------------------|
 | id                | INTEGER | Unique book ID (Primary Key)         |
