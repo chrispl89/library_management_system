@@ -1,14 +1,34 @@
 # Library Management System 📚
 
-This is a Python-based Library Management System that allows users to manage a collection of books. The system supports various operations such as adding, removing, editing, and searching for books. It also includes user management and database functionalities.
+This is a Python-based Library Management System with a GUI built using tkinter. It allows users to manage a collection of books, supporting various operations such as adding, removing, editing, and searching for books.
 
-## Features ✨
+The system also includes user management and a database backend (SQLite), where books are stored persistently, along with information about who added or last modified them.
 
-- **Book Management**: Add, remove, edit, and search for books.
-- **User Management**: Register and login users, each with their own library.
-- **File Operations**: Save and load library data to/from text and JSON files.
-- **Database Integration**: Store and manage books using an SQLite database.
-- **Logging**: Log actions and handle exceptions with detailed messages.
+## ✨ Features
+
+### ✅ Graphical User Interface (GUI):
+- User-friendly Tkinter interface with tabbed navigation (`ttk.Notebook`).
+- Two main views:
+  - **My Library** – Displays all books in the database.
+  - **Database** – Provides an advanced global view with filtering & sorting.
+
+### ✅ Database Integration (SQLite):
+- Persistent book storage in an SQLite database (`library.db`).
+- Column `last_modified_by` tracks the user who added or modified each book.
+- Filtering & sorting options (including sorting by user who modified a book).
+
+### ✅ User Management:
+- Users can register and log in, maintaining their session.
+- Each user can add, edit, and remove books (affecting a shared database).
+
+### ✅ Book Management:
+- Add books with title, author, category.
+- Remove and edit books (with username tracking).
+- Search books by title, author, category, or last modified by.
+
+### ✅ Logging & Exception Handling:
+- Logs user actions such as adding/removing/editing books.
+- Handles database errors and incorrect user inputs.
 
 ## Installation 🛠️
 
@@ -27,10 +47,13 @@ This is a Python-based Library Management System that allows users to manage a c
 
 1. Run the main script:
     ```sh
-    python library.py
+    python library_management_system.py
     ```
 
-2. Follow the on-screen menu to register or login as a user.
+2. Use the Graphical Interface to manage books:
+- View all books in the My Library tab.
+- Add, remove, and edit books (all actions are stored in the database).
+- Filter & sort books in the Database tab (by title, author, category, or last modified by).
 
 3. After logging in, you can perform various library operations such as showing books, adding books, removing books, and editing books.
 
@@ -60,14 +83,10 @@ file_manager.load_from_json("library.json")
 ### Library
 - `add_book(self, book)`: Adds a book to the library.
 - `remove_book(self, book)`: Removes a book from the library.
-- `show_books(self)`: Displays all books in the library.
 - `edit_book(self, book, new_title=None, new_author=None, new_category=None)`: Edits the details of a book.
 - `search_books(self, keyword, field=None)`: Searches for books based on a keyword.
-- `sort_books(self, field="title", ascending=True)`: Sorts books by a specified field.
 
 ### FileManager
-- `write_to_file(self, filename)`: Saves the library contents to a text file.
-- `read_from_file(self, filename)`: Reads the contents of a text file.
 - `save_to_json(self, filename)`: Saves the library contents to a JSON file.
 - `load_from_json(self, filename)`: Loads data from a JSON file.
 
@@ -76,8 +95,15 @@ file_manager.load_from_json("library.json")
 - `login(self, username)`: Logs in a user.
 
 ### DBManager
-- `add_book(self, book)`: Adds a book to the database.
-- `remove_book(self, title)`: Removes a book from the database.
-- `edit_book(self, old_title, new_title=None, new_author=None, new_category=None)`: Updates the details of a book in the database.
-- `get_books(self)`: Retrieves all books from the database.
+- `add_book(self, book, username)` – Adds a book to the database and tracks who added it.
+- `edit_book(self, old_title, new_title=None, new_author=None, new_category=None, username=None)` – Updates a book and records the last modifier.
+- `get_books(self, filter_field=None, filter_value=None, sort_field=None, ascending=True)` – Retrieves books with filtering and sorting.
 
+### Database Schema (SQLite)
+| Column            | Type    | Description                          |
+|-------------------|---------|--------------------------------------|
+| id                | INTEGER | Unique book ID (Primary Key)         |
+| title             | TEXT    | Book title                           |
+| author            | TEXT    | Book author                          |
+| category          | TEXT    | Book category                        |
+| last_modified_by  | TEXT    | User who last modified the book      |
