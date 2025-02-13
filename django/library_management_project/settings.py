@@ -109,7 +109,7 @@ CACHES = {
 }
 
 # ✅ SECURITY - conditionally enabled for production
-if not DEBUG:  # 🔥 Produkcja
+if not DEBUG:  # 🔥 Production
     SECURE_SSL_REDIRECT = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True

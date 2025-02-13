@@ -5,11 +5,11 @@ from .models import Book
 
 class BookAPITestCase(APITestCase):
     def setUp(self):
-        # Utwórz użytkownika testowego i wymuś uwierzytelnienie
+        
         self.user = User.objects.create_user(username="testuser", password="testpass")
         self.client.force_authenticate(user=self.user)
         
-        # Utwórz przykładową książkę
+        
         self.book = Book.objects.create(
             title="Test Book",
             author="Test Author",

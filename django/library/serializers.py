@@ -3,7 +3,6 @@ from rest_framework import serializers
 from .models import Book
 
 class BookSerializer(serializers.ModelSerializer):
-    # Używamy StringRelatedField, aby uniknąć problemów rekurencyjnych
     added_by = serializers.StringRelatedField(read_only=True)
 
     class Meta:

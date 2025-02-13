@@ -1,6 +1,6 @@
 class RequestLogMiddleware:
     """
-    Middleware, które loguje każde przychodzące żądanie.
+    Middleware that logs every incoming request.
     """
     def __init__(self, get_response):
         self.get_response = get_response
