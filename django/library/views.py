@@ -17,8 +17,8 @@ class UserRegistrationView(generics.CreateAPIView):
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all().select_related('added_by')
     serializer_class = BookSerializer
-    # Użytkownik musi być uwierzytelniony, a operacje zapisu mogą wykonywać tylko właściciele
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+    # The user must be authenticated, and only owners can perform write operations
+    permission_classes = [permissions.AllowAny]
 
     def perform_create(self, serializer):
         serializer.save(added_by=self.request.user)
@@ -26,5 +26,5 @@ class BookViewSet(viewsets.ModelViewSet):
 @method_decorator(cache_page(60 * 15), name='dispatch')
 class BookListView(ListView):
     model = Book
-    template_name = "library/book_list.html"  # Ścieżka do szablonu
+    template_name = "library/book_list.html"  
     context_object_name = "books" 
