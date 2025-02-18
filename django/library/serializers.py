@@ -27,6 +27,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 class LoanSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    due_date = serializers.DateField(format="%Y-%m-%d", input_formats=["%Y-%m-%d"])
     book_title = serializers.ReadOnlyField(source="book.title")
     user_username = serializers.ReadOnlyField(source="user.username")
 
