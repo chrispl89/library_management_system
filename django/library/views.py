@@ -4,9 +4,11 @@ from rest_framework.response import Response
 from django.views.generic import ListView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
-from .models import Book, Loan
-from .serializers import BookSerializer, LoanSerializer, UserRegistrationSerializer
+from .models import Book, Loan, Reservation
+from .serializers import BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer
 from .permissions import IsOwnerOrReadOnly
+from django.utils import timezone
+
 
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -47,3 +49,28 @@ class BookListView(ListView):
     model = Book
     template_name = "library/book_list.html"  
     context_object_name = "books" 
+
+
+class ReservationViewSet(viewsets.ModelViewSet):
+    queryset = Reservation.objects.all().select_related("book", "user")
+    serializer_class = ReservationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        book = serializer.validated_data["book"]
+        expires_at = timezone.now() + timezone.timedelta(days=3) 
+        serializer.save(user=self.request.user, expires_at=expires_at)
+
+    @action(detail=True, methods=["post"])
+    def cancel_reservation(self, request, pk=None):
+        reservation = self.get_object()
+        if reservation.user != request.user:
+            return Response({"error": "You can only cancel your own reservations."}, status=status.HTTP_403_FORBIDDEN)
+        reservation.cancel_reservation()
+        return Response({"message": "Reservation cancelled successfully."})
+
+    @action(detail=False, methods=["get"])
+    def my_reservations(self, request):
+        reservations = Reservation.objects.filter(user=request.user, status="ACTIVE")
+        serializer = self.get_serializer(reservations, many=True)
+        return Response(serializer.data)

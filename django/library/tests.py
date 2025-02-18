@@ -1,7 +1,9 @@
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Book, Loan
+from .models import Book, Loan, Reservation
+from django.utils import timezone
+
 
 class BookAPITestCase(APITestCase):
     def setUp(self):
@@ -61,4 +63,29 @@ class LoanAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         loan_id = response.data["id"]
         response = self.client.post(f"/api/loans/{loan_id}/return_book/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class ReservationAPITestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="reservationuser", password="testpass")
+        self.client.force_authenticate(user=self.user)
+        self.book = Book.objects.create(
+            title="Reserved Book", 
+            author="Test Author", 
+            category="Fiction", 
+            added_by=self.user
+        )
+
+    def test_create_reservation(self):
+        data = {"book": self.book.id}
+        response = self.client.post("/api/reservations/", data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["book_title"], self.book.title)
+
+    def test_cancel_reservation(self):
+        reservation = Reservation.objects.create(
+            book=self.book, user=self.user, expires_at=timezone.now() + timezone.timedelta(days=3)
+        )
+        response = self.client.post(f"/api/reservations/{reservation.id}/cancel_reservation/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)

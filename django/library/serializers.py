@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Book, Loan
+from .models import Book, Loan, Reservation
 
 class BookSerializer(serializers.ModelSerializer):
     added_by = serializers.StringRelatedField(read_only=True)
@@ -41,4 +41,20 @@ class LoanSerializer(serializers.ModelSerializer):
         book = data.get("book")
         if book and not book.is_available:
             raise serializers.ValidationError("Book is already borrowed!")
+        return data
+    
+
+class ReservationSerializer(serializers.ModelSerializer):
+    book_title = serializers.ReadOnlyField(source="book.title")
+    user_username = serializers.ReadOnlyField(source="user.username")
+    
+    class Meta:
+        model = Reservation
+        fields = ["id", "book", "book_title", "user", "user_username", "created_at", "expires_at", "status"]
+        read_only_fields = ["id", "created_at", "expires_at", "status", "user"]
+    
+    def validate(self, data):
+        book = data.get("book")
+        if book and not book.is_available:
+            raise serializers.ValidationError("Book is currently unavailable.")
         return data

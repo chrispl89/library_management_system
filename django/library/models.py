@@ -56,3 +56,33 @@ class Loan(models.Model):
 
     def __str__(self):
         return f"{self.book.title} - {self.user.username} ({self.status})"
+
+
+class Reservation(models.Model):
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("EXPIRED", "Expired"),
+        ("CANCELLED", "Cancelled"),
+    ]
+
+    book = models.ForeignKey("Book", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ACTIVE")
+
+    def is_expired(self):
+        return self.expires_at < timezone.now()
+
+    def expire_reservation(self):
+        """Mark the reservation as expired and free the book."""
+        self.status = "EXPIRED"
+        self.save()
+
+    def cancel_reservation(self):
+        """Cancel the reservation manually."""
+        self.status = "CANCELLED"
+        self.save()
+
+    def __str__(self):
+        return f"Reservation: {self.book.title} by {self.user.username} ({self.status})"
