@@ -1,15 +1,12 @@
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Book
+from .models import Book, Loan
 
 class BookAPITestCase(APITestCase):
     def setUp(self):
-        
         self.user = User.objects.create_user(username="testuser", password="testpass")
         self.client.force_authenticate(user=self.user)
-        
-        
         self.book = Book.objects.create(
             title="Test Book",
             author="Test Author",
@@ -39,3 +36,27 @@ class BookAPITestCase(APITestCase):
         url = f"/api/books/{self.book.id}/"
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+class LoanAPITestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="loanuser", password="loanpass")
+        self.client.force_authenticate(user=self.user)
+        self.book = Book.objects.create(
+            title="Loan Test Book", 
+            author="Loan Author", 
+            category="Fiction", 
+            added_by=self.user
+        )
+
+    def test_create_loan(self):
+        data = {"book": self.book.id, "due_date": "2025-12-31"}
+        response = self.client.post("/api/loans/", data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_return_book(self):
+        data = {"book": self.book.id, "due_date": "2025-12-31"}
+        response = self.client.post("/api/loans/", data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        loan_id = response.data["id"]
+        response = self.client.post(f"/api/loans/{loan_id}/return_book/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

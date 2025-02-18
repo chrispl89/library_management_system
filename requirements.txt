@@ -26,6 +26,7 @@ pycparser==2.22
 PyJWT==2.10.1
 pyOpenSSL==25.0.0
 pytest==8.3.4
+python-decouple==3.8
 pytz==2025.1
 PyYAML==6.0.2
 sqlparse==0.5.3
