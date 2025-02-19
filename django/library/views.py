@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from django.views.generic import ListView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
-from .models import Book, Loan, Reservation
-from .serializers import BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer
+from .models import Book, Loan, Reservation, Review
+from .serializers import BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer, ReviewSerializer
 from .permissions import IsOwnerOrReadOnly
 from django.utils import timezone
 
@@ -74,3 +74,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservations = Reservation.objects.filter(user=request.user, status="ACTIVE")
         serializer = self.get_serializer(reservations, many=True)
         return Response(serializer.data)
+    
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all().select_related("book", "user")
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+        

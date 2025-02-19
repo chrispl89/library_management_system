@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Book, Loan, Reservation
+from .models import Book, Loan, Reservation, Review
 from django.utils import timezone
 
 
@@ -89,3 +89,22 @@ class ReservationAPITestCase(APITestCase):
         )
         response = self.client.post(f"/api/reservations/{reservation.id}/cancel_reservation/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class ReviewAPITestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="reviewuser", password="testpass")
+        self.client.force_authenticate(user=self.user)
+        self.book = Book.objects.create(
+            title="Review Test Book", 
+            author="Review Author", 
+            category="Fiction", 
+            added_by=self.user
+        )
+
+    def test_create_review(self):
+        data = {"book": self.book.id, "rating": 5, "comment": "Excellent book!"}
+        response = self.client.post("/api/reviews/", data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["rating"], 5)
+        

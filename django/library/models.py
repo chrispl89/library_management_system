@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone 
+from django.core.validators import MinValueValidator, MaxValueValidator
+
 
 class BookQuerySet(models.QuerySet):
     def by_category(self, category):
@@ -86,3 +88,15 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"Reservation: {self.book.title} by {self.user.username} ({self.status})"
+    
+
+class Review(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review of {self.book.title} by {self.user.username} ({self.rating})"
+    
