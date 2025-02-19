@@ -47,11 +47,17 @@ class Loan(models.Model):
     due_date = models.DateField()
     returned_at = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ACTIVE")
+    fine = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
 
     def mark_as_returned(self):
-        """Mark the loan as returned and update status"""
+        """Mark the loan as returned and calculate fine if overdue."""
         self.status = "RETURNED"
-        self.returned_at = timezone.now().date()  
+        self.returned_at = timezone.now().date()
+        if self.returned_at > self.due_date:
+            days_overdue = (self.returned_at - self.due_date).days
+            self.fine = days_overdue * 1.00 
+        else:
+            self.fine = 0.00
         self.book.is_available = True
         self.book.save()
         self.save()

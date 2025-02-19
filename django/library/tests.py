@@ -64,6 +64,7 @@ class LoanAPITestCase(APITestCase):
         loan_id = response.data["id"]
         response = self.client.post(f"/api/loans/{loan_id}/return_book/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("fine"), "0.00")
 
 
 class ReservationAPITestCase(APITestCase):
@@ -107,4 +108,3 @@ class ReviewAPITestCase(APITestCase):
         response = self.client.post("/api/reviews/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["rating"], 5)
-        

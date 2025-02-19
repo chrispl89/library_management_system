@@ -31,16 +31,17 @@ class LoanSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(format="%Y-%m-%d", input_formats=["%Y-%m-%d"])
     book_title = serializers.ReadOnlyField(source="book.title")
     user_username = serializers.ReadOnlyField(source="user.username")
+    fine = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
 
     class Meta:
         model = Loan
-        fields = ["id", "book", "book_title", "user", "user_username", "loan_date", "due_date", "returned_at", "status"]
-        read_only_fields = ["id", "loan_date", "returned_at", "status"]
+        fields = ["id", "book", "book_title", "user", "user_username", "loan_date", "due_date", "returned_at", "status", "fine"]
+        read_only_fields = ["id", "loan_date", "returned_at", "status", "user", "fine"]
 
     def validate(self, data):
         book = data.get("book")
         if book and not book.is_available:
-            raise serializers.ValidationError("Book is already borrowed!")
+            raise serializers.ValidationError("Book is currently unavailable.")
         return data
     
 

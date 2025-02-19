@@ -32,9 +32,9 @@ class LoanViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         book = serializer.validated_data["book"]
+        serializer.save(user=self.request.user)
         book.is_available = False
         book.save()
-        serializer.save(user=self.request.user)
 
     @action(detail=True, methods=["post"])
     def return_book(self, request, pk=None):
@@ -42,7 +42,11 @@ class LoanViewSet(viewsets.ModelViewSet):
         if loan.status == "RETURNED":
             return Response({"error": "Book already returned!"}, status=status.HTTP_400_BAD_REQUEST)
         loan.mark_as_returned()
-        return Response({"message": "Book returned successfully!"})
+        return Response({
+            "message": "Book returned successfully!",
+            "fine": f"{loan.fine:.2f}"
+        })
+
 
 @method_decorator(cache_page(60 * 15), name='dispatch')
 class BookListView(ListView):
@@ -83,4 +87,3 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-        
