@@ -52,7 +52,7 @@ class LoanAPITestCase(APITestCase):
 
     def test_create_loan(self):
         data = {"book": self.book.id, "due_date": "2025-12-31"}
-        response = self.client.post("/api/loans/", data)
+        response = self.client.post("/api/loans/", data, format="json")
         print("🔎 Full Response:", response.json())
           
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
