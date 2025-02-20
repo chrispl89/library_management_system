@@ -1,16 +1,17 @@
 from pathlib import Path
 import os
+from decouple import config, Csv
 
+# BASE_DIR set using Path - this is the preferred way
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ✅ Debug set dynamically - enabled in development, disabled in production
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+# DEBUG and SECRET_KEY taken from environment variables (defaults to True for developer)
+DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
+SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-2%@3^t6d2%#c2dj^jjien#3g*u1isc+&19#hk1_jrh5#a767i&')
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-2%@3^t6d2%#c2dj^jjien#3g*u1isc+&19#hk1_jrh5#a767i&")
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default="127.0.0.1,localhost", cast=Csv())
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-
-# ✅ INSTALLED_APPS
+# INSTALLED_APPS
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -21,15 +22,16 @@ INSTALLED_APPS = [
     "library",
     "rest_framework",
     "rest_framework.authtoken",
-    # "drf_yasg",  # ✅ Swagger i ReDoc off
+    # "drf_yasg",  # Swagger and ReDoc temporary disabled
     "debug_toolbar",
     "django_extensions",
 ]
 
+# MIDDLEWARE 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.middleware.security.SecurityMiddleware',
-    'library.middleware.RequestLogMiddleware',
+    'library.middleware.RequestLogMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -46,7 +48,7 @@ ROOT_URLCONF = 'library_management_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [],  
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -61,7 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'library_management_project.wsgi.application'
 
-# ✅ DATABASE CONFIGURATION
+# DATABASE – SQLite for development
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -69,7 +71,7 @@ DATABASES = {
     }
 }
 
-# ✅ PASSWORD VALIDATION
+# PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -77,19 +79,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ✅ INTERNATIONALIZATION
+# INTERNATIONALIZATION
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# ✅ STATIC FILES
+# STATIC FILES
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ✅ REST FRAMEWORK CONFIG
+# REST FRAMEWORK CONFIGURATION –  JWT with SimpleJWT
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -100,7 +102,7 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.openapi.AutoSchema",
 }
 
-# ✅ CACHE CONFIGURATION
+# CACHE CONFIGURATION
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -108,16 +110,26 @@ CACHES = {
     }
 }
 
-# ✅ SECURITY - conditionally enabled for production
-if not DEBUG:  # 🔥 Production
+# Security - settings for production and development
+if not DEBUG:  # Production environment
     SECURE_SSL_REDIRECT = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_SECONDS = 3600  # In production please set properly time
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-else:  # 🔧 Locally - disabled to avoid errors
+else:  # Developement environment
     SECURE_SSL_REDIRECT = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
     SECURE_HSTS_SECONDS = 0
+
+# For testing purposes - sending emails to the console
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# In production, use the correct backend, such as SMTP:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.example.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your_email@example.com'
+# EMAIL_HOST_PASSWORD = 'your_password'
