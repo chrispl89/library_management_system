@@ -2,12 +2,14 @@ from rest_framework import viewsets, permissions, generics, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.views.generic import ListView
+from rest_framework.views import APIView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from .models import Book, Loan, Reservation, Review
 from .serializers import BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer, ReviewSerializer
 from .permissions import IsOwnerOrReadOnly
 from django.utils import timezone
+import requests
 
 
 
@@ -87,3 +89,28 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class GoogleBooksSearchView(APIView):
+    permission_classes = [permissions.AllowAny]  # publiczny endpoint
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if not query:
+            return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # URL Google Books API
+        google_api_url = "https://www.googleapis.com/books/v1/volumes"
+        params = {
+            "q": query,
+            "maxResults": 5  # limit wyników, możesz dostosować
+        }
+        try:
+            response = requests.get(google_api_url, params=params)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            return Response({"error": "Failed to fetch data from Google Books API.", "details": str(e)},
+                            status=status.HTTP_502_BAD_GATEWAY)
+        
+        data = response.json()
+        return Response(data, status=status.HTTP_200_OK)
