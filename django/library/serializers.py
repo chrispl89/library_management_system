@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Book, Loan, Reservation, Review
+from .models import Book, Loan, Reservation, Review, CustomUser
 
 class BookSerializer(serializers.ModelSerializer):
     added_by = serializers.StringRelatedField(read_only=True)
@@ -14,17 +14,20 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
-        model = User
-        fields = ("id", "username", "email", "password")
+        model = CustomUser
+        fields = ("id", "username", "email", "password", "role")
+        read_only_fields = ["id"]
 
     def create(self, validated_data):
-        user = User(
+        user = CustomUser(
             username=validated_data["username"],
-            email=validated_data.get("email", "")
+            email=validated_data.get("email", ""),
+            role=validated_data.get("role", "reader")
         )
         user.set_password(validated_data["password"])
         user.save()
         return user
+    
 
 class LoanSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())

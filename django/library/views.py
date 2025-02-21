@@ -7,7 +7,7 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from .models import Book, Loan, Reservation, Review
 from .serializers import BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer, ReviewSerializer
-from .permissions import IsOwnerOrReadOnly
+from .permissions import IsLibrarianOrReadOnly, IsAdminOrReadOnly
 from django.utils import timezone
 import requests
 
@@ -19,12 +19,9 @@ class UserRegistrationView(generics.CreateAPIView):
 
 
 class BookViewSet(viewsets.ModelViewSet):
-    queryset = Book.objects.all().select_related('added_by')
+    queryset = Book.objects.all().select_related("added_by")
     serializer_class = BookSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def perform_create(self, serializer):
-        serializer.save(added_by=self.request.user)
+    permission_classes = [IsLibrarianOrReadOnly]
 
 
 class LoanViewSet(viewsets.ModelViewSet):
@@ -85,15 +82,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all().select_related("book", "user")
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class GoogleBooksSearchView(APIView):
-    permission_classes = [permissions.AllowAny]  # publiczny endpoint
-
+    permission_classes = [permissions.AllowAny] 
     def get(self, request):
         query = request.query_params.get("q", "").strip()
         if not query:
@@ -103,7 +96,7 @@ class GoogleBooksSearchView(APIView):
         google_api_url = "https://www.googleapis.com/books/v1/volumes"
         params = {
             "q": query,
-            "maxResults": 5  # limit wyników, możesz dostosować
+            "maxResults": 5  # max results, is editable
         }
         try:
             response = requests.get(google_api_url, params=params)

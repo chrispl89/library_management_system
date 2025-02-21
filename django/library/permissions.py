@@ -1,12 +1,19 @@
 from rest_framework import permissions
 
-class IsOwnerOrReadOnly(permissions.BasePermission):
+class IsLibrarianOrReadOnly(permissions.BasePermission):
     """
-    Custom permission to only allow owners of an object to edit or delete it.
-    Read is allowed to anyone (SAFE_METHODS).
+    Only the librarian can edit/delete, the rest can only read.
     """
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:  
+            return True  
+        return request.user.is_authenticated and request.user.role == "librarian"
 
-    def has_object_permission(self, request, view, obj):
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    Only the administrator can edit/delete, the rest have read-only access.
+    """
+    def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.added_by == request.user
+            return True  
+        return request.user.is_authenticated and request.user.role == "admin"
