@@ -5,12 +5,13 @@ from django.views.generic import ListView
 from rest_framework.views import APIView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
-from .models import Book, Loan, Reservation, Review
-from .serializers import BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer, ReviewSerializer
-from .permissions import IsLibrarianOrReadOnly, IsAdminOrReadOnly
+from .models import Book, Loan, Reservation, Review, Profile
+from .serializers import (BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer, ReviewSerializer, 
+                          ProfileSerializer)
+from .permissions import IsLibrarianOrReadOnly, IsAdmin
 from django.utils import timezone
 import requests
-
+from django.contrib.auth import get_user_model
 
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -19,9 +20,12 @@ class UserRegistrationView(generics.CreateAPIView):
 
 
 class BookViewSet(viewsets.ModelViewSet):
-    queryset = Book.objects.all().select_related("added_by")
+    queryset = Book.objects.all().select_related('added_by')
     serializer_class = BookSerializer
     permission_classes = [IsLibrarianOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(added_by=self.request.user)
 
 
 class LoanViewSet(viewsets.ModelViewSet):
@@ -41,17 +45,14 @@ class LoanViewSet(viewsets.ModelViewSet):
         if loan.status == "RETURNED":
             return Response({"error": "Book already returned!"}, status=status.HTTP_400_BAD_REQUEST)
         loan.mark_as_returned()
-        return Response({
-            "message": "Book returned successfully!",
-            "fine": f"{loan.fine:.2f}"
-        })
+        return Response({"message": "Book returned successfully!", "fine": f"{loan.fine:.2f}"})
 
 
 @method_decorator(cache_page(60 * 15), name='dispatch')
 class BookListView(ListView):
     model = Book
-    template_name = "library/book_list.html"  
-    context_object_name = "books" 
+    template_name = "library/book_list.html"
+    context_object_name = "books"
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
@@ -60,8 +61,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        book = serializer.validated_data["book"]
-        expires_at = timezone.now() + timezone.timedelta(days=3) 
+        expires_at = timezone.now() + timezone.timedelta(days=3)
         serializer.save(user=self.request.user, expires_at=expires_at)
 
     @action(detail=True, methods=["post"])
@@ -77,12 +77,21 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservations = Reservation.objects.filter(user=request.user, status="ACTIVE")
         serializer = self.get_serializer(reservations, many=True)
         return Response(serializer.data)
-    
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all().select_related("book", "user")
     serializer_class = ReviewSerializer
-    permission_classes = [IsAdminOrReadOnly]
+
+    def get_permissions(self):
+        if self.action == "destroy":
+            self.permission_classes = [IsAdmin]
+        else:
+            self.permission_classes = [permissions.IsAuthenticated]
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class GoogleBooksSearchView(APIView):
@@ -107,3 +116,11 @@ class GoogleBooksSearchView(APIView):
         
         data = response.json()
         return Response(data, status=status.HTTP_200_OK)
+    
+
+    class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
+        serializer_class = ProfileSerializer
+        permission_classes = [permissions.IsAuthenticated]
+
+        def get_queryset(self):
+            return Profile.objects.filter(user=self.request.user)

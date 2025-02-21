@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Book, Loan, Reservation, Review, CustomUser
+from .models import Book, Loan, Reservation, Review, CustomUser, Profile
+from django.contrib.auth import get_user_model
 
 class BookSerializer(serializers.ModelSerializer):
     added_by = serializers.StringRelatedField(read_only=True)
@@ -10,19 +11,20 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "author", "category", "is_available", "added_by", "created_at"]
         read_only_fields = ["id", "added_by", "created_at"]
 
+User = get_user_model()
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
-
+    
     class Meta:
-        model = CustomUser
-        fields = ("id", "username", "email", "password", "role")
-        read_only_fields = ["id"]
+        model = User
+        fields = ("id", "username", "email", "password", "role")  # Dodajemy role
 
     def create(self, validated_data):
-        user = CustomUser(
+        user = User.objects.create(
             username=validated_data["username"],
             email=validated_data.get("email", ""),
-            role=validated_data.get("role", "reader")
+            role=validated_data.get("role", "reader"),  # Domyślnie czytelnik
         )
         user.set_password(validated_data["password"])
         user.save()
@@ -71,3 +73,13 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ["id", "book", "user", "user_username", "rating", "comment", "created_at"]
         read_only_fields = ["id", "user", "created_at"]
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    user_username = serializers.ReadOnlyField(source="user.username")
+
+    class Meta:
+        model = Profile
+        fields = ["id", "user", "user_username", "activity_history"]
+        read_only_fields = ["id", "user", "user_username"]
+        

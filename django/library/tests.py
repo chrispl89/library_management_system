@@ -1,13 +1,14 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
 from .models import Book, Loan, Reservation, Review
 from django.utils import timezone
 
+CustomUser = get_user_model()
 
 class BookAPITestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.user = CustomUser.objects.create_user(username="testuser", password="testpass", role="librarian")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
             title="Test Book",
@@ -41,7 +42,7 @@ class BookAPITestCase(APITestCase):
 
 class LoanAPITestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="loanuser", password="loanpass")
+        self.user = CustomUser.objects.create_user(username="loanuser", password="loanpass")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
             title="Loan Test Book", 
@@ -54,7 +55,6 @@ class LoanAPITestCase(APITestCase):
         data = {"book": self.book.id, "due_date": "2025-12-31"}
         response = self.client.post("/api/loans/", data, format="json")
         print("🔎 Full Response:", response.json())
-          
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_return_book(self):
@@ -66,10 +66,9 @@ class LoanAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data.get("fine"), "0.00")
 
-
 class ReservationAPITestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="reservationuser", password="testpass")
+        self.user = CustomUser.objects.create_user(username="reservationuser", password="testpass")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
             title="Reserved Book", 
@@ -91,10 +90,9 @@ class ReservationAPITestCase(APITestCase):
         response = self.client.post(f"/api/reservations/{reservation.id}/cancel_reservation/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-
 class ReviewAPITestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="reviewuser", password="testpass")
+        self.user = CustomUser.objects.create_user(username="reviewuser", password="testpass", role="reader")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
             title="Review Test Book", 

@@ -107,13 +107,20 @@ class Review(models.Model):
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
-        ("reader", "Reader"),
-        ("librarian", "Librarian"),
         ("admin", "Admin"),
+        ("librarian", "Librarian"),
+        ("reader", "Reader"),
     ]
-    
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="reader")
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="reader")
 
     def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
+        return f"{self.username} ({self.role})"
     
+
+class Profile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    activity_history = models.TextField(blank=True, null=True)
+    # Możesz dodać dodatkowe pola, np. numer telefonu, adres, etc.
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"
