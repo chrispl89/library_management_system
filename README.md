@@ -3,27 +3,21 @@
 Modular library management system with multiple interfaces.
 
 ## Project Structure
+```bash
 📦library_management_system
-
 ├── 📂django # Django backend + web interface (WIP)
-
 │ ├── README.md # Detailed Django setup/docs
-
 │ └── ... # Django project files
-
 ├── 📂gui # Desktop GUI version (WIP)
-
 │ ├── README.md # GUI-specific documentation
-
 │ └── ... # GUI source files
-
 └── README.md # This file (project overview)
-
+```
 
 
 ## Components
 
-### 1. Django Web Version
+### 1. Django Web Version (Work in Progress)
 Web-based solution with full library management capabilities.
 
 **Features**:
