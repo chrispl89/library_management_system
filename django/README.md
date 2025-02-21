@@ -17,6 +17,7 @@ A web-based Library Management System built with Django for managing library cat
 - **Database**: SQLite (default; can be configured for PostgreSQL/MySQL)
 - **Frontend**: HTML, CSS, Bootstrap
 - **Authentication**: Django Auth System
+- **Tools**: django-extensions (for `runserver_plus`)
 
 ## Installation
 
@@ -31,7 +32,10 @@ A web-based Library Management System built with Django for managing library cat
 3. **Set up a virtual environment**:
     ```bash
     python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    # Linux/macOS:
+    source venv/bin/activate
+    # Windows:
+    .\venv\Scripts\activate
 4. **Install dependencies**:
     ```bash
     pip install -r requirements.txt
@@ -41,22 +45,28 @@ A web-based Library Management System built with Django for managing library cat
 6. **Create a superuser (admin)**:
     ```bash
     python manage.py createsuperuser
-7. **Run the server**:
+7. **Run development server**:
     ```bash
-    python manage.py runserver_plus --cert-file cert.pem --key-file key.pem 
-    # using SSL. In production use trusted certificate
+    # Standard server:
+    python manage.py runserver
+
+    # OR with SSL (requires django-extensions):
+    python manage.py runserver_plus --cert-file cert.pem
 8. **Access the admin panel at http://localhost:8000/admin and log in with your superuser credentials.**
 
 ## Usage
 - **Admin Panel**: Manage books, members, and borrowing records via the Django admin interface.
-- **Librarian Access**: Log in to the system to:
 
+### Librarian Access
+
+1. **Log in with admin credentials**
+2. **Available actions**:
     - Add/edit books and members.
-
     - Track borrow/return status.
-
     - Search for books.
-- **Members**: Members can view their borrowing history (if frontend is implemented).
+    - Generate reports
+### Members
+- View personal borrowing history (requires frontend implementation).
 
 ## Contributing
 
@@ -69,13 +79,18 @@ A web-based Library Management System built with Django for managing library cat
    `git push origin feature/new-feature`.
 5. **[Open a Pull Request](https://github.com/chrispl89/library_management_system/compare)**.
 
-## License
-Distributed under the **[MIT License](https://choosealicense.com/licenses/mit/)**. See **[LICENSE](https://github.com/chrispl89/library_management_system/blob/main/LICENSE)** for details.
 
 ## Acknowledgements
 - Built with **[Django](https://www.djangoproject.com/)**.
 - Frontend styled with **[Bootstrap](https://getbootstrap.com/)**.
+- SSL support: **[django-extensions](https://django-extensions.readthedocs.io/)**
 
 ---
 
-**Note**: This project is intended for educational purposes. Customize the database and settings for production use.
+**Note**: This project is primarily for educational purposes. For production use:
+
+- Configure proper database (PostgreSQL/MySQL)
+
+- Set up HTTPS with trusted certificate
+
+- Implement additional security measures
