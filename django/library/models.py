@@ -119,8 +119,9 @@ class CustomUser(AbstractUser):
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
     activity_history = models.TextField(blank=True, null=True)
-    # Możesz dodać dodatkowe pola, np. numer telefonu, adres, etc.
 
     def __str__(self):
         return f"Profile of {self.user.username}"

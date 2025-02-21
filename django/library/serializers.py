@@ -77,9 +77,8 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class ProfileSerializer(serializers.ModelSerializer):
     user_username = serializers.ReadOnlyField(source="user.username")
-
+    
     class Meta:
         model = Profile
-        fields = ["id", "user", "user_username", "activity_history"]
+        fields = ["id", "user", "user_username", "phone_number", "address", "activity_history"]
         read_only_fields = ["id", "user", "user_username"]
-        

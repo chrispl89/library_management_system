@@ -1,12 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BookViewSet, UserRegistrationView, BookListView, LoanViewSet, ReservationViewSet, ReviewViewSet, GoogleBooksSearchView
+from .views import (BookViewSet, UserRegistrationView, BookListView, LoanViewSet, ReservationViewSet, 
+                    ReviewViewSet, GoogleBooksSearchView, UserRegistrationView, ProfileViewSet)
 
 router = DefaultRouter()
 router.register(r"books", BookViewSet, basename="book")
 router.register(r"loans", LoanViewSet, basename="loan")
 router.register(r"reservations", ReservationViewSet)
 router.register(r"reviews", ReviewViewSet, basename="review")
+router.register(r"profiles", ProfileViewSet, basename="profile")
 
 urlpatterns = [
     path("register/", UserRegistrationView.as_view(), name="user-register"),
