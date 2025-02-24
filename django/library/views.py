@@ -118,9 +118,14 @@ class GoogleBooksSearchView(APIView):
         return Response(data, status=status.HTTP_200_OK)
     
 
-class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
+class ProfileViewSet(viewsets.ModelViewSet):
+    queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Profile.objects.filter(user=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
+        
