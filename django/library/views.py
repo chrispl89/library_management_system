@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, generics, status, serializers
+from rest_framework import viewsets, permissions, generics, status, serializers, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.views.generic import ListView
@@ -12,11 +12,33 @@ from .permissions import IsLibrarianOrReadOnly, IsAdmin, IsOwnerOrAdmin
 from django.utils import timezone
 import requests
 from django.contrib.auth import get_user_model
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import get_object_or_404
+from django.utils.encoding import force_bytes
+from django.core.mail import send_mail
+
+
+User = get_user_model()
 
 
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
+
+    def perform_create(self, serializer):
+        user = serializer.save(is_active=False) 
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        activation_link = f"https://127.0.0.1:8000/api/activate/{uid}/{token}/"
+        send_mail(
+            "Activate your account",
+            f"Click the link to activate your account: {activation_link}",
+            "noreply@library.com",
+            [user.email],
+            fail_silently=False,
+        )
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -133,8 +155,6 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
         
 
-User = get_user_model()
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -149,3 +169,21 @@ class UserViewSet(viewsets.ModelViewSet):
         if user.is_staff: 
             return User.objects.all()
         return User.objects.filter(id=user.id)
+
+
+class ActivateAccountView(views.APIView):
+    def get(self, request, uidb64, token):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = get_object_or_404(User, id=uid)
+
+            if default_token_generator.check_token(user, token):
+                user.is_active = True
+                user.save()
+                return Response({"message": "Account activated successfully!"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Invalid token!"}, status=status.HTTP_400_BAD_REQUEST)
+
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"error": "Invalid request!"}, status=status.HTTP_400_BAD_REQUEST)
+        
