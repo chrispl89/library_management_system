@@ -82,3 +82,17 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ["id", "user", "user_username", "phone_number", "address", "activity_history"]
         read_only_fields = ["id", "user", "user_username", "activity_history"]
+
+    def update(self, instance, validated_data):
+        user = self.context["request"].user
+        if instance.user != user:
+            raise serializers.ValidationError("You can only edit your own profile.")
+        return super().update(instance, validated_data)
+    
+User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "role"]
+        

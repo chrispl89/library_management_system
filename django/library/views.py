@@ -7,8 +7,8 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from .models import Book, Loan, Reservation, Review, Profile
 from .serializers import (BookSerializer, LoanSerializer, UserRegistrationSerializer, ReservationSerializer, ReviewSerializer, 
-                          ProfileSerializer)
-from .permissions import IsLibrarianOrReadOnly, IsAdmin
+                          ProfileSerializer, UserSerializer)
+from .permissions import IsLibrarianOrReadOnly, IsAdmin, IsOwnerOrAdmin
 from django.utils import timezone
 import requests
 from django.contrib.auth import get_user_model
@@ -119,13 +119,33 @@ class GoogleBooksSearchView(APIView):
     
 
 class ProfileViewSet(viewsets.ModelViewSet):
-    queryset = Profile.objects.all()
+    queryset = Profile.objects.select_related("user").all()
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Profile.objects.filter(user=self.request.user)
+        user = self.request.user
+        if user.is_staff:
+            return Profile.objects.all()
+        return Profile.objects.filter(user=user)
 
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
         
+
+User = get_user_model()
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.action in ["retrieve", "update", "partial_update", "destroy"]:
+            return [permissions.IsAuthenticated(), IsOwnerOrAdmin()]
+        return [permissions.IsAdminUser()]  
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff: 
+            return User.objects.all()
+        return User.objects.filter(id=user.id)

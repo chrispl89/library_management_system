@@ -10,9 +10,19 @@ class IsLibrarianOrReadOnly(permissions.BasePermission):
             return request.user and request.user.is_authenticated
         return request.user and request.user.is_authenticated and request.user.role == "librarian"
 
+
 class IsAdmin(permissions.BasePermission):
     """
     Allows write operations only for users with the 'admin' role.
     """
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.role == "admin"
+
+
+class IsOwnerOrAdmin(permissions.BasePermission):
+    """
+    A user can only edit his profile, unless he is an admin.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return request.user == obj or request.user.is_staff
