@@ -15,8 +15,9 @@ from django.contrib.auth import get_user_model
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import get_object_or_404
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
+
 
 
 User = get_user_model()
@@ -172,6 +173,17 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class ActivateAccountView(views.APIView):
+
+    permission_classes = [permissions.AllowAny]
+    
+    def activate_view(request, uidb64, token):
+        print(f"UID: {uidb64}, Token: {token}") 
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+    
     def get(self, request, uidb64, token):
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
