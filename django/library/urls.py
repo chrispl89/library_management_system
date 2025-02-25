@@ -13,7 +13,7 @@ router.register(r"profiles", ProfileViewSet, basename="profile")
 router.register(r'users', UserViewSet)
 
 urlpatterns = [
-    path("api/activate/<uidb64>/<token>/", ActivateAccountView.as_view(), name="activate"),
+    path("activate/<uidb64>/<token>/", ActivateAccountView.as_view(), name="activate"),
     path("api/", include(router.urls)),
     path("register/", UserRegistrationView.as_view(), name="user-register"),
     path("", include(router.urls)),
