@@ -1,8 +1,12 @@
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Book, Loan, Reservation, Review
+from .models import Book, Loan, Reservation, Review, Profile
 from django.utils import timezone
+from django.urls import reverse
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 
 CustomUser = get_user_model()
 
@@ -106,3 +110,43 @@ class ReviewAPITestCase(APITestCase):
         response = self.client.post("/api/reviews/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["rating"], 5)
+
+
+class AccountActivationTestCase(APITestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(username="activateuser", password="Pass1234", email="activate@example.com", role="reader")
+        self.user.is_active = False
+        self.user.save()
+        self.uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        self.token = default_token_generator.make_token(self.user)
+
+    def test_activate_account_valid(self):
+        url = f"/api/activate/{self.uid}/{self.token}/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["message"], "Account activated successfully!")
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_active)
+
+    def test_activate_account_invalid_token(self):
+        url = f"/api/activate/{self.uid}/invalidtoken/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+class UserDashboardTestCase(APITestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(username="dashboarduser", password="Pass1234", role="reader")
+        self.client.force_authenticate(user=self.user)
+        # Upewnij się, że profil jest utworzony
+        from .models import Profile
+        Profile.objects.get_or_create(user=self.user)
+
+    def test_dashboard_empty(self):
+        url = "/api/dashboard/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data
+        self.assertIn("profile", data)
+        self.assertEqual(data["active_loans"], [])
+        self.assertEqual(data["active_reservations"], [])
+        self.assertEqual(data["reviews"], [])
