@@ -61,6 +61,11 @@ class LoanViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
         book.is_available = False
         book.save()
+        profile = self.request.user.profile
+        current_history = profile.activity_history or ""
+        new_history_line = f"Loan created for '{book.title}' on {timezone.now()}\n"
+        profile.activity_history = current_history + new_history_line
+        profile.save()
 
     @action(detail=True, methods=["post"])
     def return_book(self, request, pk=None):
@@ -85,7 +90,12 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         expires_at = timezone.now() + timezone.timedelta(days=3)
-        serializer.save(user=self.request.user, expires_at=expires_at)
+        reservation = serializer.save(user=self.request.user, expires_at=expires_at)
+        profile = self.request.user.profile
+        current_history = profile.activity_history or ""
+        new_history_line = f"Reservation created for '{reservation.book.title}' on {timezone.now()}\n"
+        profile.activity_history = current_history + new_history_line
+        profile.save()
 
     @action(detail=True, methods=["post"])
     def cancel_reservation(self, request, pk=None):
@@ -199,3 +209,27 @@ class ActivateAccountView(views.APIView):
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return Response({"error": "Invalid request!"}, status=status.HTTP_400_BAD_REQUEST)
         
+
+class UserDashboardView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        profile_data = ProfileSerializer(user.profile).data
+        
+        active_loans = Loan.objects.filter(user=user, status="ACTIVE")
+        loans_data = LoanSerializer(active_loans, many=True).data
+
+        active_reservations = Reservation.objects.filter(user=user, status="ACTIVE")
+        reservations_data = ReservationSerializer(active_reservations, many=True).data
+
+        user_reviews = Review.objects.filter(user=user)
+        reviews_data = ReviewSerializer(user_reviews, many=True).data
+
+        return Response({
+            "profile": profile_data,
+            "active_loans": loans_data,
+            "active_reservations": reservations_data,
+            "reviews": reviews_data
+        })
+    
