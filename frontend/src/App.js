@@ -1,84 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Login from "./Login";
 
-function App() {
-  const [books, setBooks] = useState([]);
-  const [isLibrarian, setIsLibrarian] = useState(false);
-  const [newBook, setNewBook] = useState({ title: '', author: '', year: '', genre: '' });
+const App = () => {
+    const [token, setToken] = useState(localStorage.getItem("token") || "");
+    const [books, setBooks] = useState([]);
+    const [error, setError] = useState("");
 
-  // Fetch the list of books from the API
-  useEffect(() => {
-    axios.get('http://localhost:5000/api/books') // Ensure this endpoint matches your API
-      .then(response => setBooks(response.data))
-      .catch(error => console.error('Error fetching books:', error));
-  }, []);
+    useEffect(() => {
+        const fetchBooks = async () => {
+            try {
+                const response = await axios.get("https://127.0.0.1:8000/api/books/", {
+                    headers: { Authorization: `Bearer ${token}` },
+                    withCredentials: false, // Nie przesyłamy cookies
+                });
+                setBooks(response.data);
+                setError("");
+            } catch (err) {
+                setError("Failed to fetch books. Please log in again.");
+                console.error("Error fetching books:", err);
+            }
+        };
 
-  // Function to add a new book
-  const addBook = () => {
-    axios.post('http://localhost:5000/api/books', newBook)
-      .then(response => {
-        setBooks([...books, response.data]);
-        setNewBook({ title: '', author: '', year: '', genre: '' });
-      })
-      .catch(error => console.error('Error adding book:', error));
-  };
+        if (token) {
+            fetchBooks();
+        }
+    }, [token]);
 
-  return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Library</h1>
-      <button onClick={() => setIsLibrarian(!isLibrarian)}>
-        Switch Mode: {isLibrarian ? 'User' : 'Librarian'}
-      </button>
-      
-      {isLibrarian && (
-        <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
-          <h2>Add Book</h2>
-          <div>
-            <input
-              type="text"
-              placeholder="Title"
-              value={newBook.title}
-              onChange={(e) => setNewBook({ ...newBook, title: e.target.value })}
-            />
-          </div>
-          <div>
-            <input
-              type="text"
-              placeholder="Author"
-              value={newBook.author}
-              onChange={(e) => setNewBook({ ...newBook, author: e.target.value })}
-            />
-          </div>
-          <div>
-            <input
-              type="number"
-              placeholder="Year"
-              value={newBook.year}
-              onChange={(e) => setNewBook({ ...newBook, year: e.target.value })}
-            />
-          </div>
-          <div>
-            <input
-              type="text"
-              placeholder="Genre"
-              value={newBook.genre}
-              onChange={(e) => setNewBook({ ...newBook, genre: e.target.value })}
-            />
-          </div>
-          <button onClick={addBook}>Add</button>
+    const handleLogout = () => {
+        setToken("");
+        localStorage.removeItem("token");
+    };
+
+    return (
+        <div>
+            {!token ? (
+                <Login setToken={setToken} />
+            ) : (
+                <div>
+                    <h1>Library Management</h1>
+                    {error && <p style={{ color: "red" }}>{error}</p>}
+                    <ul>
+                        {books.map((book) => (
+                            <li key={book.id}>
+                                {book.title} - {book.author}
+                            </li>
+                        ))}
+                    </ul>
+                    <button onClick={handleLogout}>Logout</button>
+                </div>
+            )}
         </div>
-      )}
-
-      <h2 style={{ marginTop: '30px' }}>Books List</h2>
-      <ul>
-        {books.map(book => (
-          <li key={book.id}>
-            <strong>{book.title}</strong> – {book.author} ({book.year}) [{book.genre}]
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+    );
+};
 
 export default App;
