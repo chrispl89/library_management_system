@@ -17,6 +17,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 
@@ -232,4 +234,16 @@ class UserDashboardView(APIView):
             "active_reservations": reservations_data,
             "reviews": reviews_data
         })
+    
+    
+class DashboardTemplateView(LoginRequiredMixin, TemplateView):
+    template_name = "library/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            context['profile'] = self.request.user.profile
+        else:
+            context['profile'] = None
+        return context
     
