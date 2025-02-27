@@ -139,8 +139,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 AUTH_USER_MODEL = "library.CustomUser"
 
-
+# For development, you can allow all origins:
 CORS_ALLOW_ALL_ORIGINS = False
+# In production, use proper domains, for example:
+# CORS_ALLOWED_ORIGINS = ["https://your-frontend-domain.com"]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://127.0.0.1:3000",

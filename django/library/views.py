@@ -19,6 +19,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from rest_framework.permissions import IsAuthenticated
 
 
 
@@ -47,7 +48,7 @@ class UserRegistrationView(generics.CreateAPIView):
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all().select_related('added_by')
     serializer_class = BookSerializer
-    permission_classes = [IsLibrarianOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(added_by=self.request.user)
