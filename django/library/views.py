@@ -236,3 +236,6 @@ class UserDashboardView(APIView):
             "reviews": reviews_data
         })
     
+
+class FrontendAppView(TemplateView):
+    template_name = "index.html"

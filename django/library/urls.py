@@ -1,8 +1,10 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from .views import (BookViewSet, UserRegistrationView, BookListView, LoanViewSet, ReservationViewSet, 
                     ReviewViewSet, GoogleBooksSearchView, UserRegistrationView, ProfileViewSet,UserViewSet, 
-                    ActivateAccountView, UserViewSet, ActivateAccountView, UserDashboardView)
+                    ActivateAccountView, UserViewSet, ActivateAccountView, UserDashboardView,
+                    FrontendAppView)
+from django.contrib import admin
 
 router = DefaultRouter()
 router.register(r"books", BookViewSet, basename="book")
@@ -20,4 +22,5 @@ urlpatterns = [
     path("", include(router.urls)),
     path("list/", BookListView.as_view(), name="book-list"),
     path("google-books/", GoogleBooksSearchView.as_view(), name="google-books-search"),
+    re_path(r'^(?!api/)(?!admin/).*$', FrontendAppView.as_view(), name='home'),
 ]
