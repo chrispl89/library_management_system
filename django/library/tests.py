@@ -52,6 +52,26 @@ class BookAPITestCase(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
+    def test_create_book_invalid_data(self):
+        """Test book creation with missing required fields"""
+        data = {"title": "Incomplete Book"}
+        response = self.client.post("/api/books/", data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_non_librarian_access(self):
+        """Verify regular users can't modify books"""
+        regular_user = CustomUser.objects.create_user(username="regular", password="pass", role="reader")
+        self.client.force_authenticate(user=regular_user)
+        
+        # Test create
+        response = self.client.post("/api/books/", {"title": "New Book"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        
+        # Test delete
+        url = f"/api/books/{self.book.id}/"
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class LoanAPITestCase(APITestCase):
     """Tests book loan lifecycle including creation and return"""
@@ -84,6 +104,25 @@ class LoanAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data.get("fine"), "0.00")
 
+    def test_loan_unavailable_book(self):
+        """Test loaning already borrowed book"""
+        # First loan
+        self.test_create_loan()
+        
+        # Second loan attempt
+        data = {"book": self.book.id, "due_date": "2025-12-31"}
+        response = self.client.post("/api/loans/", data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_overdue_fine_calculation(self):
+        """Verify correct fine calculation for overdue returns"""
+        data = {"book": self.book.id, "due_date": "2020-01-01"}  # Past date
+        response = self.client.post("/api/loans/", data, format="json")
+        loan_id = response.data["id"]
+        
+        response = self.client.post(f"/api/loans/{loan_id}/return_book/")
+        self.assertGreater(float(response.data["fine"]), 0.00)
+
 
 class ReservationAPITestCase(APITestCase):
     """Tests reservation management including creation and cancellation"""
@@ -114,6 +153,26 @@ class ReservationAPITestCase(APITestCase):
         response = self.client.post(f"/api/reservations/{reservation.id}/cancel_reservation/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_reserve_unavailable_book(self):
+        """Test reserving a book that's currently loaned"""
+        # Loan book first
+        loan_data = {"book": self.book.id, "due_date": "2025-12-31"}
+        self.client.post("/api/loans/", loan_data, format="json")
+        
+        # Try to reserve
+        data = {"book": self.book.id}
+        response = self.client.post("/api/reservations/", data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_auto_expire_reservation(self):
+        """Verify reservation expiration after time passes"""
+        reservation = Reservation.objects.create(
+            book=self.book, 
+            user=self.user, 
+            expires_at=timezone.now() - timezone.timedelta(days=1)  # Past date
+        )
+        self.assertTrue(reservation.is_expired())
+
 
 class ReviewAPITestCase(APITestCase):
     """Tests review submission and validation"""
@@ -136,7 +195,17 @@ class ReviewAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["rating"], 5)
 
+    def test_invalid_rating_values(self):
+        """Test boundary values for ratings (1-5)"""
+        data = {"book": self.book.id, "rating": 0}
+        response = self.client.post("/api/reviews/", data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        data["rating"] = 6
+        response = self.client.post("/api/reviews/", data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+  
 class AccountActivationTestCase(APITestCase):
     """Tests user account activation workflow with token validation"""
     
@@ -185,3 +254,4 @@ class UserDashboardTestCase(APITestCase):
         self.assertEqual(data["active_loans"], [])
         self.assertEqual(data["active_reservations"], [])
         self.assertEqual(data["reviews"], [])
+
