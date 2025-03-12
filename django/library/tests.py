@@ -10,8 +10,12 @@ from django.utils.encoding import force_bytes
 
 CustomUser = get_user_model()
 
+
 class BookAPITestCase(APITestCase):
+    """Tests CRUD operations for Book API endpoints with librarian privileges"""
+    
     def setUp(self):
+        """Create test user and sample book for authentication and testing"""
         self.user = CustomUser.objects.create_user(username="testuser", password="testpass", role="librarian")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
@@ -22,17 +26,20 @@ class BookAPITestCase(APITestCase):
         )
 
     def test_get_books(self):
+        """Verify book listing returns at least the created test book"""
         response = self.client.get("/api/books/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data), 1)
 
     def test_create_book(self):
+        """Test successful book creation with valid data"""
         data = {"title": "New Book", "author": "New Author", "category": "Non-fiction"}
         response = self.client.post("/api/books/", data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["title"], "New Book")
 
     def test_edit_book(self):
+        """Verify partial updates to book details"""
         data = {"title": "Updated Title"}
         url = f"/api/books/{self.book.id}/"
         response = self.client.patch(url, data)
@@ -40,12 +47,17 @@ class BookAPITestCase(APITestCase):
         self.assertEqual(response.data["title"], "Updated Title")
 
     def test_delete_book(self):
+        """Test book deletion workflow"""
         url = f"/api/books/{self.book.id}/"
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
+
 class LoanAPITestCase(APITestCase):
+    """Tests book loan lifecycle including creation and return"""
+    
     def setUp(self):
+        """Create user and book for loan testing"""
         self.user = CustomUser.objects.create_user(username="loanuser", password="loanpass")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
@@ -56,12 +68,14 @@ class LoanAPITestCase(APITestCase):
         )
 
     def test_create_loan(self):
+        """Verify successful loan creation with future due date"""
         data = {"book": self.book.id, "due_date": "2025-12-31"}
         response = self.client.post("/api/loans/", data, format="json")
         print("🔎 Full Response:", response.json())
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_return_book(self):
+        """Test complete loan lifecycle with on-time return"""
         data = {"book": self.book.id, "due_date": "2025-12-31"}
         response = self.client.post("/api/loans/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -70,8 +84,12 @@ class LoanAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data.get("fine"), "0.00")
 
+
 class ReservationAPITestCase(APITestCase):
+    """Tests reservation management including creation and cancellation"""
+    
     def setUp(self):
+        """Initialize user and book for reservation tests"""
         self.user = CustomUser.objects.create_user(username="reservationuser", password="testpass")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
@@ -82,20 +100,26 @@ class ReservationAPITestCase(APITestCase):
         )
 
     def test_create_reservation(self):
+        """Verify successful reservation creation"""
         data = {"book": self.book.id}
         response = self.client.post("/api/reservations/", data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["book_title"], self.book.title)
 
     def test_cancel_reservation(self):
+        """Test manual reservation cancellation workflow"""
         reservation = Reservation.objects.create(
             book=self.book, user=self.user, expires_at=timezone.now() + timezone.timedelta(days=3)
         )
         response = self.client.post(f"/api/reservations/{reservation.id}/cancel_reservation/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+
 class ReviewAPITestCase(APITestCase):
+    """Tests review submission and validation"""
+    
     def setUp(self):
+        """Create test user and book for review testing"""
         self.user = CustomUser.objects.create_user(username="reviewuser", password="testpass", role="reader")
         self.client.force_authenticate(user=self.user)
         self.book = Book.objects.create(
@@ -106,6 +130,7 @@ class ReviewAPITestCase(APITestCase):
         )
 
     def test_create_review(self):
+        """Verify valid review submission with rating and comment"""
         data = {"book": self.book.id, "rating": 5, "comment": "Excellent book!"}
         response = self.client.post("/api/reviews/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -113,7 +138,10 @@ class ReviewAPITestCase(APITestCase):
 
 
 class AccountActivationTestCase(APITestCase):
+    """Tests user account activation workflow with token validation"""
+    
     def setUp(self):
+        """Create inactive user and generate activation tokens"""
         self.user = CustomUser.objects.create_user(username="activateuser", password="Pass1234", email="activate@example.com", role="reader")
         self.user.is_active = False
         self.user.save()
@@ -121,6 +149,7 @@ class AccountActivationTestCase(APITestCase):
         self.token = default_token_generator.make_token(self.user)
 
     def test_activate_account_valid(self):
+        """Test successful activation with valid token"""
         url = f"/api/activate/{self.uid}/{self.token}/"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -129,19 +158,25 @@ class AccountActivationTestCase(APITestCase):
         self.assertTrue(self.user.is_active)
 
     def test_activate_account_invalid_token(self):
+        """Verify error handling for invalid activation tokens"""
         url = f"/api/activate/{self.uid}/invalidtoken/"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+
 class UserDashboardTestCase(APITestCase):
+    """Tests user dashboard data aggregation"""
+    
     def setUp(self):
+        """Create user and ensure profile exists"""
         self.user = CustomUser.objects.create_user(username="dashboarduser", password="Pass1234", role="reader")
         self.client.force_authenticate(user=self.user)
-        # Upewnij się, że profil jest utworzony
+        # Ensure profile is created
         from .models import Profile
         Profile.objects.get_or_create(user=self.user)
 
     def test_dashboard_empty(self):
+        """Verify dashboard structure with no active records"""
         url = "/api/dashboard/"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

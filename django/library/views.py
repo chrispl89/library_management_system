@@ -24,15 +24,24 @@ User = get_user_model()
 
 
 class UserRegistrationView(generics.CreateAPIView):
+    """
+    Handles user registration with email activation workflow
+    
+    Features:
+    - Creates inactive user accounts
+    - Sends activation emails with secure tokens
+    - Uses AllowAny permissions for open registration
+    """
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
 
     def perform_create(self, serializer):
+        """Create user and send activation email with unique token"""
         user = serializer.save(is_active=False) 
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        activation_link = f"https://127.0.0.1:8000/api/activate/{uid}/{token}/"
+        activation_link = f"http://127.0.0.1:8000/api/activate/{uid}/{token}/"
         send_mail(
             "Activate your account",
             f"Click the link to activate your account: {activation_link}",
@@ -43,20 +52,38 @@ class UserRegistrationView(generics.CreateAPIView):
 
 
 class BookViewSet(viewsets.ModelViewSet):
+    """
+    CRUD operations for book management
+    
+    Permissions:
+    - Librarians: Full access
+    - Others: Read-only
+    - Auto-sets added_by to current user on creation
+    """
     queryset = Book.objects.all().select_related('added_by')
     serializer_class = BookSerializer
     permission_classes = [IsLibrarianOrReadOnly]
 
     def perform_create(self, serializer):
+        """Automatically assign current user as book creator"""
         serializer.save(added_by=self.request.user)
 
 
 class LoanViewSet(viewsets.ModelViewSet):
+    """
+    Manages book loan lifecycle
+    
+    Features:
+    - Updates book availability status
+    - Tracks loan history in user profile
+    - Provides return_book custom action
+    """
     queryset = Loan.objects.all().select_related("book", "user")
     serializer_class = LoanSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
+        """Handle book availability and user activity tracking"""
         book = serializer.validated_data["book"]
         serializer.save(user=self.request.user)
         book.is_available = False
@@ -69,6 +96,7 @@ class LoanViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def return_book(self, request, pk=None):
+        """Process book returns and calculate overdue fines"""
         loan = self.get_object()
         if loan.status == "RETURNED":
             return Response({"error": "Book already returned!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -78,12 +106,27 @@ class LoanViewSet(viewsets.ModelViewSet):
 
 @method_decorator(cache_page(60 * 15), name='dispatch')
 class BookListView(ListView):
+    """
+    Cached book listing for public access
+    
+    Features:
+    - 15-minute response caching
+    - Traditional Django template rendering
+    """
     model = Book
     template_name = "library/book_list.html"
     context_object_name = "books"
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
+    """
+    Manages book reservations with expiration
+    
+    Features:
+    - Automatic 3-day expiration
+    - User-specific reservation tracking
+    - Cancelation endpoint
+    """
     queryset = Reservation.objects.all().select_related("book", "user")
     serializer_class = ReservationSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -113,6 +156,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """
+    Handles book reviews and ratings
+    
+    Permissions:
+    - Authenticated users: Create/read
+    - Admins only: Delete
+    """
     queryset = Review.objects.all().select_related("book", "user")
     serializer_class = ReviewSerializer
 
@@ -128,8 +178,18 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class GoogleBooksSearchView(APIView):
+    """
+    Proxy for Google Books API search
+    
+    Parameters:
+    - q (required): Search query string
+    
+    Returns:
+    - Raw Google Books API response
+    """
     permission_classes = [permissions.AllowAny] 
     def get(self, request):
+        """Handle external API requests with error wrapping"""
         query = request.query_params.get("q", "").strip()
         if not query:
             return Response({"error": "Query parameter 'q' is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -152,6 +212,13 @@ class GoogleBooksSearchView(APIView):
     
 
 class ProfileViewSet(viewsets.ModelViewSet):
+    """
+    Manages user profile data
+    
+    Security:
+    - Users can only access their own profile
+    - Admins can view all profiles
+    """
     queryset = Profile.objects.select_related("user").all()
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -167,6 +234,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
         
 
 class UserViewSet(viewsets.ModelViewSet):
+    """
+    User management endpoint
+    
+    Permissions:
+    - Admins: Full access
+    - Users: Self-service only
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -183,7 +257,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class ActivateAccountView(views.APIView):
-
+    """
+    Handles account activation via email tokens
+    
+    Parameters:
+    - uidb64: Base64 encoded user ID
+    - token: Time-limited activation token
+    """
     permission_classes = [permissions.AllowAny]
     
     def activate_view(request, uidb64, token):
@@ -195,6 +275,7 @@ class ActivateAccountView(views.APIView):
             user = None
     
     def get(self, request, uidb64, token):
+        """Validate activation token and activate user"""
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
             user = get_object_or_404(User, id=uid)
@@ -211,9 +292,19 @@ class ActivateAccountView(views.APIView):
         
 
 class UserDashboardView(APIView):
+    """
+    Aggregated user activity dashboard
+    
+    Returns:
+    - Profile data
+    - Active loans
+    - Current reservations
+    - Review history
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Compile dashboard data from multiple models"""
         user = request.user
         profile_data = ProfileSerializer(user.profile).data
         
