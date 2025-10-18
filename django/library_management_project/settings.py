@@ -25,12 +25,14 @@ INSTALLED_APPS = [
     # "drf_yasg",  # Swagger and ReDoc temporary disabled
     "debug_toolbar",
     "django_extensions",
+    "corsheaders",
 ]
 
 # MIDDLEWARE 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'library.middleware.RequestLogMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -136,3 +138,23 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 
 AUTH_USER_MODEL = "library.CustomUser"
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
