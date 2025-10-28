@@ -32,7 +32,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
+      console.log('Attempting login for:', username);
+      console.log('API URL:', 'http://127.0.0.1:8000/api/token/');
+      
       const response = await authAPI.login({ username, password });
+      console.log('Login response:', response);
+      
       const { access, refresh } = response.data;
       
       localStorage.setItem('access_token', access);
@@ -41,11 +46,16 @@ export const AuthProvider = ({ children }) => {
       const decoded = jwtDecode(access);
       setUser(decoded);
       
+      console.log('Login successful for user:', decoded);
       return { success: true };
     } catch (error) {
+      console.error('Login error details:', error);
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+      
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+        error: error.response?.data?.detail || error.message || 'Login failed' 
       };
     }
   };

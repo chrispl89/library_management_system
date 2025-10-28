@@ -1,47 +1,102 @@
 # Library Management System - Frontend
 
-React frontend application for the Library Management System, fully integrated with Django REST API backend.
+Modern React frontend application for the Library Management System with full Django REST API integration.
 
-## Features
+## ✨ Features
 
-- **Authentication**: JWT-based login and registration
-- **Book Management**: Browse, search, and manage books (librarians only)
-- **Loan System**: Borrow books and track active loans
-- **Reservations**: Reserve books that are currently unavailable
-- **Reviews**: Rate and review books
-- **User Dashboard**: View personal activity, loans, reservations, and reviews
-- **Google Books Integration**: Search and import books from Google Books API
+### Authentication & Authorization
+- **JWT-based authentication** with token refresh
+- **Role-based access control** (Admin, Librarian, Reader)
+- **Secure login and registration**
+- **Protected routes** for authenticated users
 
-## Tech Stack
+### Book Catalog
+- **Browse 300+ books** across 15 categories
+- **Advanced search** by title, author, or category
+- **Category filtering** with dropdown selector
+- **Real-time availability** tracking
+- **One-click borrowing** directly from catalog
+- **Google Books integration** for easy book addition
 
-- React 19
-- React Router DOM for navigation
-- Axios for API calls
-- Bootstrap for styling
-- Lucide React for icons
-- JWT Decode for token management
+### Book Management (Librarians & Admins)
+- **Add new books** manually or via Google Books search
+- **Edit book information**
+- **Delete books** from catalog
+- **View who added each book**
 
-## Prerequisites
+### Loan System
+- **Borrow books** with automatic 14-day due date
+- **Track active loans** in dedicated page
+- **Return books** with one click
+- **Fine calculation** for overdue returns ($1/day)
+- **Loan status tracking** (ACTIVE/RETURNED/OVERDUE)
 
-- Node.js (v14 or higher)
-- npm or yarn
-- Django backend running on `http://127.0.0.1:8000`
+### Reservations
+- **Reserve unavailable books**
+- **3-day reservation period**
+- **View active reservations**
+- **Cancel reservations**
 
-## Installation
+### Reviews & Ratings
+- **5-star rating system**
+- **Write detailed reviews**
+- **View all book reviews**
 
-1. Install dependencies:
+### User Dashboard
+- **Activity overview** with statistics
+- **Active loans summary**
+- **Current reservations**
+- **Review history**
+- **User profile** with activity tracking
+
+## 🛠️ Tech Stack
+
+- **React 19.2.0** - UI framework
+- **React Router DOM 7.9.4** - Client-side routing
+- **Axios 1.12.2** - HTTP client for API calls
+- **Bootstrap 5.3.8** - CSS framework
+- **TailwindCSS** - Utility-first styling
+- **Lucide React 0.546.0** - Modern icon library
+- **JWT Decode 4.0.0** - Token management
+
+## 📋 Prerequisites
+
+- **Node.js** v14 or higher
+- **npm** (comes with Node.js)
+- **Django backend** running on `http://127.0.0.1:8000`
+
+## 🚀 Installation
+
+### 1. Install dependencies
 ```bash
+cd frontend
 npm install
 ```
 
-2. Make sure the Django backend is running on port 8000
+### 2. Ensure backend is running
+Make sure the Django backend is running on port 8000:
+```bash
+# In another terminal
+cd django
+python manage.py runserver
+```
 
-3. Start the development server:
+### 3. Start development server
 ```bash
 npm start
 ```
 
-The application will open at [http://localhost:3000](http://localhost:3000)
+The application will automatically open at **http://localhost:3000**
+
+## 🔐 Test Credentials
+
+Use these credentials to test the application:
+
+| Username | Password | Role |
+|----------|----------|------|
+| reader_user | ReaderPass123! | Reader |
+| librarian_user | LibrarianPass123! | Librarian |
+| admin_user | AdminPass123! | Admin |
 
 ## Project Structure
 
@@ -80,79 +135,160 @@ The frontend communicates with the Django backend through the following endpoint
 - **Dashboard**: `/api/dashboard/`
 - **Google Books**: `/api/google-books/`
 
-## User Roles
+## 👥 User Roles & Permissions
 
-- **Reader**: Can browse books, borrow, reserve, and review
-- **Librarian**: Can manage books (add, edit, delete) + all reader permissions
-- **Admin**: Full system access including user management
+### Reader
+- ✅ Browse and search all books
+- ✅ Filter by category
+- ✅ Borrow available books
+- ✅ Return books
+- ✅ Create reservations
+- ✅ Write reviews and ratings
+- ✅ View personal dashboard
+- ❌ Cannot add/edit/delete books
 
-## Getting Started with Create React App
+### Librarian
+- ✅ All Reader permissions
+- ✅ Add new books
+- ✅ Edit book information
+- ✅ Delete books
+- ✅ View who added each book
+- ❌ Cannot manage users
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+### Admin
+- ✅ All Librarian permissions
+- ✅ User management
+- ✅ Delete any review
+- ✅ Full system access
 
-## Available Scripts
-
-In the project directory, you can run:
+## 📜 Available Scripts
 
 ### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Runs the app in development mode at **http://localhost:3000**
 
 ### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Launches the test runner in interactive watch mode
 
 ### `npm run build`
+Builds the app for production to the `build` folder
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🐛 Troubleshooting
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Frontend won't start
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+**Clear cache and reinstall:**
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
 
-### `npm run eject`
+**Check Node version:**
+```bash
+node --version  # Should be v14+
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Login not working
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+**Hard refresh the page:**
+- Press `Ctrl + Shift + R` (Windows/Linux)
+- Press `Cmd + Shift + R` (Mac)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+**Check browser console:**
+- Press `F12` to open Developer Tools
+- Look for errors in Console tab
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+**Verify backend is running:**
+```bash
+curl http://127.0.0.1:8000/api/books/
+```
 
-## Learn More
+### Books not showing
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+**Backend needs data:**
+```bash
+cd ..
+python setup_test_data.py
+python create_book_catalog.py
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+**Clear browser cache:**
+- Settings → Privacy → Clear browsing data
+- Select "Cached images and files"
 
-### Code Splitting
+### CORS errors
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+**Ensure backend CORS is configured:**
+- Check `django/library_management_project/settings.py`
+- CORS_ALLOWED_ORIGINS should include `http://localhost:3000`
 
-### Analyzing the Bundle Size
+## 🎯 Usage Guide
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Browsing Books
+1. Navigate to "Books" page
+2. Use search bar to find books
+3. Select category from dropdown filter
+4. Click book card to see details
 
-### Making a Progressive Web App
+### Borrowing Books
+1. Login as any user
+2. Find an available book
+3. Click green "Borrow Book" button
+4. Book is loaned for 14 days automatically
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Managing Loans
+1. Go to "Loans" page
+2. View all active loans
+3. Click "Return Book" to return
+4. Late returns show fine amount
 
-### Advanced Configuration
+### Adding Books (Librarian/Admin only)
+1. Login as librarian or admin
+2. Click "Add Book" button
+3. Search Google Books or enter manually
+4. Fill in details and save
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🔗 API Configuration
 
-### Deployment
+API base URL is configured in `src/services/api.js`:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```javascript
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+```
 
-### `npm run build` fails to minify
+To change for production, update this constant.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 📱 Pages
+
+- **/** - Home/Landing page
+- **/login** - User login
+- **/register** - New user registration
+- **/books** - Browse and search books
+- **/loans** - Manage loans (protected)
+- **/reservations** - Book reservations (protected)
+- **/reviews** - Write and view reviews (protected)
+- **/dashboard** - User dashboard (protected)
+
+## 🎨 Styling
+
+The app uses a combination of:
+- **Bootstrap** for base components
+- **TailwindCSS** for utility classes
+- **Custom CSS** in component files
+
+## 📦 Build for Production
+
+```bash
+npm run build
+```
+
+Creates optimized production build in `build/` folder.
+
+## 📄 License
+
+This project is for educational purposes.
+
+---
+
+**Version:** 1.0.0  
+**Built with:** Create React App  
+**Last Updated:** October 2025

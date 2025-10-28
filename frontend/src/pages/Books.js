@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { booksAPI } from '../services/api';
+import { booksAPI, loansAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, Plus, Edit, Trash2, Search, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2, Search, X, CheckCircle, AlertCircle, BookMarked } from 'lucide-react';
 
 const Books = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
@@ -111,13 +112,45 @@ const Books = () => {
     setSearchQuery('');
   };
 
+  const handleBorrow = async (book) => {
+    if (!user) {
+      setError('Please login to borrow books');
+      return;
+    }
+
+    // Set due date to 14 days from now
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 14);
+    const dueDateString = dueDate.toISOString().split('T')[0];
+
+    try {
+      await loansAPI.create({
+        book: book.id,
+        due_date: dueDateString
+      });
+      setError('');
+      alert(`Successfully borrowed "${book.title}"! Due date: ${dueDateString}`);
+      fetchBooks(); // Refresh book list to update availability
+    } catch (err) {
+      setError(err.response?.data?.non_field_errors?.[0] || 'Failed to borrow book');
+      console.error(err);
+    }
+  };
+
   const isLibrarian = user?.role === 'librarian' || user?.role === 'admin';
 
-  const filteredBooks = books.filter(book =>
-    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    book.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get unique categories from books
+  const categories = ['all', ...new Set(books.map(book => book.category).sort())];
+
+  const filteredBooks = books.filter(book => {
+    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || book.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="space-y-6">
@@ -141,9 +174,9 @@ const Books = () => {
         </div>
       )}
 
-      {/* Search */}
+      {/* Search and Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex space-x-2">
+        <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
@@ -154,6 +187,35 @@ const Books = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+          <div className="md:w-64">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category === 'all' ? 'All Categories' : category}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-sm text-gray-600">
+            Showing <strong>{filteredBooks.length}</strong> of <strong>{books.length}</strong> books
+          </span>
+          {(selectedCategory !== 'all' || searchQuery) && (
+            <button
+              onClick={() => {
+                setSelectedCategory('all');
+                setSearchQuery('');
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
       </div>
 
@@ -183,8 +245,24 @@ const Books = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{book.title}</h3>
               <p className="text-sm text-gray-600 mb-1">by {book.author}</p>
               <p className="text-sm text-gray-500 mb-3">Category: {book.category}</p>
-              <p className="text-xs text-gray-400">Added by: {book.added_by}</p>
+              {isLibrarian && (
+                <p className="text-xs text-gray-400">Added by: {book.added_by}</p>
+              )}
 
+              {/* Borrow button for all authenticated users */}
+              {user && book.is_available && (
+                <div className="mt-4 pt-4 border-t">
+                  <button
+                    onClick={() => handleBorrow(book)}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  >
+                    <BookMarked className="h-4 w-4" />
+                    <span>Borrow Book</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Edit/Delete buttons for librarians */}
               {isLibrarian && (
                 <div className="flex space-x-2 mt-4 pt-4 border-t">
                   <button
