@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, Home, BookMarked, Calendar, Star, User, LogOut, Menu, X } from 'lucide-react';
+import { BookOpen, Home, BookMarked, Calendar, Star, User, LogOut, Menu, X, BarChart3 } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -20,6 +20,7 @@ const Layout = ({ children }) => {
     { path: '/loans', label: 'My Loans', icon: BookMarked, auth: true },
     { path: '/reservations', label: 'Reservations', icon: Calendar, auth: true },
     { path: '/reviews', label: 'Reviews', icon: Star, auth: true },
+    { path: '/statistics', label: 'Statistics', icon: BarChart3, auth: true },
     { path: '/dashboard', label: 'Dashboard', icon: User, auth: true },
   ];
 

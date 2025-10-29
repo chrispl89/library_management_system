@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from decouple import config, Csv
+import dj_database_url
 
 # BASE_DIR set using Path - this is the preferred way
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -65,13 +66,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'library_management_project.wsgi.application'
 
-# DATABASE – SQLite for development
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# DATABASE – PostgreSQL for Docker/production, SQLite for local development
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Use PostgreSQL from environment variable (Docker/production)
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
     }
-}
+else:
+    # Use SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = [

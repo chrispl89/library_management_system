@@ -10,6 +10,7 @@ import Loans from './pages/Loans';
 import Reservations from './pages/Reservations';
 import Reviews from './pages/Reviews';
 import Dashboard from './pages/Dashboard';
+import Statistics from './pages/Statistics';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -69,6 +70,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><Dashboard /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/statistics"
+            element={
+              <ProtectedRoute>
+                <Layout><Statistics /></Layout>
               </ProtectedRoute>
             }
           />

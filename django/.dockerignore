@@ -1,0 +1,17 @@
+*.pyc
+__pycache__
+db.sqlite3
+.env
+.git
+.gitignore
+*.log
+*.pot
+*.mo
+venv/
+env/
+.vscode/
+staticfiles/
+media/
+debug.log
+cert.crt
+cert.key

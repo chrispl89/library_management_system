@@ -49,12 +49,11 @@ A modern, full-stack library management system with Django REST Framework backen
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start with Docker (Recommended)
 
 ### Prerequisites
 
-- **Python 3.8+**
-- **Node.js 14+** and npm
+- **Docker Desktop** installed and running
 - **Git**
 
 ### Installation
@@ -66,11 +65,68 @@ git clone https://github.com/chrispl89/library_management_system.git
 cd library_management_system
 ```
 
-#### 2. Backend Setup
+#### 2. Start all services with Docker
+
+**Windows (PowerShell):**
+```powershell
+.\start.ps1
+```
+
+**Or use Docker Compose directly:**
+```bash
+docker-compose up -d
+```
+
+This will start:
+- **PostgreSQL** database (port 5432)
+- **Django** backend (port 8000)
+- **React** frontend (port 3000)
+
+#### 3. Create test users and sample data
+
+```bash
+# Create test users (librarian, reader, admin)
+docker-compose exec backend python create_test_users.py
+
+# Add 15 sample books
+docker-compose exec backend python create_sample_books.py
+
+# (Optional) Create superuser for admin panel
+docker-compose exec backend python manage.py createsuperuser
+```
+
+#### 4. Access the application
+
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:8000/api/
+- **Admin Panel:** http://localhost:8000/admin/
+
+#### 5. Stop the system
+
+**Windows (PowerShell):**
+```powershell
+.\stop.ps1
+```
+
+**Or:**
+```bash
+docker-compose down
+```
+
+---
+
+## 🛠️ Alternative: Manual Setup (Without Docker)
+
+### Prerequisites
+
+- **Python 3.8+**
+- **Node.js 14+** and npm
+
+### Backend Setup
 
 ```bash
 # Install Python dependencies
-pip install -r requirements.txt
+pip install -r django/requirements.txt
 
 # Navigate to Django directory
 cd django
@@ -78,46 +134,41 @@ cd django
 # Run database migrations
 python manage.py migrate
 
-# Create initial data (test users and book catalog)
-cd ..
-python setup_test_data.py
-python create_book_catalog.py
+# Create test users
+python create_test_users.py
 
 # Start backend server
-cd django
 python manage.py runserver
 ```
 
-Backend will run at: **http://127.0.0.1:8000**
+Backend runs at: **http://127.0.0.1:8000**
 
-#### 3. Frontend Setup
-
-Open a **new terminal** window:
+### Frontend Setup
 
 ```bash
 # Navigate to frontend directory
 cd frontend
 
-# Install Node dependencies
+# Install dependencies
 npm install
 
 # Start development server
 npm start
 ```
 
-Frontend will run at: **http://localhost:3000**
+Frontend runs at: **http://localhost:3000**
 
 ---
 
 ## 🔐 Test Credentials
 
-The system comes with pre-configured test users:
+After running `create_test_users.py`, you can login with:
 
 | Username | Password | Role | Permissions |
 |----------|----------|------|-------------|
-| **admin_user** | AdminPass123! | Admin | Full system access |
-| **librarian_user** | LibrarianPass123! | Librarian | Book management, all operations |
-| **reader_user** | ReaderPass123! | Reader | Browse, borrow, review books |
+| **admin_user** | Test1234 | Admin | Full system access |
+| **librarian_user** | Test1234 | Librarian | Book management, all operations |
+| **reader_user** | Test1234 | Reader | Browse, borrow, review books |
 
 ---
 
@@ -186,31 +237,50 @@ All features plus:
 
 ```
 library_management_system/
-├── django/                      # Backend (Django REST Framework)
-│   ├── library/                 # Main application
-│   │   ├── models.py           # Database models
-│   │   ├── views.py            # API endpoints
-│   │   ├── serializers.py      # Data serialization
-│   │   ├── permissions.py      # Access control
-│   │   └── urls.py             # URL routing
-│   ├── library_management_project/  # Project settings
-│   ├── manage.py               # Django management
-│   └── db.sqlite3              # Database (SQLite)
+├── django/                          # Backend (Django REST Framework)
+│   ├── library/                     # Main application
+│   │   ├── models.py               # Database models
+│   │   ├── views.py                # API endpoints
+│   │   ├── serializers.py          # Data serialization
+│   │   ├── permissions.py          # Access control
+│   │   ├── urls.py                 # URL routing
+│   │   └── tests.py                # Unit tests (27 tests)
+│   ├── library_management_project/ # Project settings
+│   ├── create_test_users.py        # Create test users script
+│   ├── create_sample_books.py      # Add sample books script
+│   ├── activate_users.py           # Activate all users script
+│   ├── Dockerfile                  # Docker configuration
+│   ├── requirements.txt            # Python dependencies
+│   └── manage.py                   # Django management
 │
-├── frontend/                    # Frontend (React)
-│   ├── public/                 # Static files
+├── frontend/                        # Frontend (React)
+│   ├── public/                     # Static files
 │   ├── src/
-│   │   ├── components/         # Reusable components
-│   │   ├── context/           # React Context (Auth)
-│   │   ├── pages/             # Application pages
-│   │   ├── services/          # API integration
-│   │   └── App.js             # Main application
-│   └── package.json           # Node dependencies
+│   │   ├── components/             # Reusable components
+│   │   │   ├── Layout.js          # Navigation & layout
+│   │   │   └── LoadingSpinner.js  # Loading component
+│   │   ├── context/               # React Context (Auth)
+│   │   ├── pages/                 # Application pages
+│   │   │   ├── Books.js           # Book catalog with sorting
+│   │   │   ├── Dashboard.js       # User dashboard
+│   │   │   ├── Statistics.js      # Analytics page
+│   │   │   └── ...
+│   │   ├── services/              # API integration
+│   │   ├── utils/                 # Utilities
+│   │   │   └── validation.js      # Form validation
+│   │   └── App.js                 # Main application
+│   ├── Dockerfile                  # Docker configuration
+│   ├── nginx.conf                  # Nginx configuration
+│   └── package.json               # Node dependencies
 │
-├── setup_test_data.py          # Create test users
-├── create_book_catalog.py      # Populate book catalog
-├── requirements.txt            # Python dependencies
-└── README.md                   # This file
+├── docker-compose.yml              # Docker services orchestration
+├── start.ps1                       # Windows startup script
+├── stop.ps1                        # Windows stop script
+├── test.ps1                        # Test runner script
+├── DOCKER_README.md                # Docker documentation
+├── QUICKSTART.md                   # Quick start guide
+├── FEATURES.md                     # Features documentation
+└── README.md                       # This file
 ```
 
 ---
@@ -220,10 +290,13 @@ library_management_system/
 ### Backend
 - **Django 5.1.6** - Web framework
 - **Django REST Framework 3.15.2** - API development
-- **Simple JWT 5.4.0** - Authentication
-- **Django CORS Headers** - Cross-origin support
-- **SQLite** - Database (development)
-- **WhiteNoise** - Static file serving
+- **Simple JWT 5.3.1** - Authentication
+- **Django CORS Headers 4.6.0** - Cross-origin support
+- **PostgreSQL 15** - Production database (Docker)
+- **SQLite** - Development database (fallback)
+- **Gunicorn 23.0.0** - Production WSGI server
+- **WhiteNoise 6.8.2** - Static file serving
+- **psycopg2-binary 2.9.9** - PostgreSQL adapter
 
 ### Frontend
 - **React 19.2.0** - UI framework
@@ -232,6 +305,11 @@ library_management_system/
 - **Lucide React** - Icons
 - **Bootstrap 5.3.8** - Styling
 - **TailwindCSS** - Utility styling
+
+### Infrastructure
+- **Docker & Docker Compose** - Containerization
+- **Nginx** - Reverse proxy & static file serving
+- **PostgreSQL 15 Alpine** - Database container
 
 ---
 
@@ -274,25 +352,24 @@ library_management_system/
 
 ---
 
-## 📚 Book Catalog
+## 📚 Sample Book Catalog
 
-The system includes **319 books** across **15 categories**:
+The `create_sample_books.py` script adds **15 classic books** across multiple categories:
 
-- **Classic Fiction** (30 books) - Austen, Dickens, Brontë, Tolkien
-- **Science Fiction** (30 books) - Herbert, Asimov, Gibson, Clarke
-- **Fantasy** (30 books) - Tolkien, Rowling, Martin, Sanderson
-- **Mystery & Thriller** (30 books) - Christie, Doyle, Larsson, Brown
-- **Dystopian Fiction** (20 books) - Orwell, Atwood, Collins
-- **Historical Fiction** (20 books) - Doerr, Follett, Hosseini
-- **Romance** (20 books) - Sparks, Green, Gabaldon
-- **Horror** (20 books) - King, Rice, Blatty
-- **Biography & Memoir** (20 books) - Frank, Mandela, Obama
-- **Self-Help & Psychology** (20 books) - Kahneman, Clear, Covey
-- **Business & Economics** (15 books) - Ries, Thiel, Collins
-- **Philosophy** (15 books) - Plato, Nietzsche, Aurelius
-- **Poetry** (15 books) - Homer, Shakespeare, Dickinson
-- **Young Adult** (15 books) - Chbosky, Green, Yoon
-- **Adventure** (15 books) - London, Verne, Dumas
+- **Fiction** - The Great Gatsby, To Kill a Mockingbird, The Catcher in the Rye
+- **Science Fiction** - 1984, Brave New World
+- **Fantasy** - The Hobbit, Harry Potter, The Lord of the Rings, The Chronicles of Narnia
+- **Romance** - Pride and Prejudice
+- **Classic** - Crime and Punishment
+- **Epic Poetry** - The Odyssey
+- **Adventure** - Moby-Dick
+- **Drama** - Hamlet
+- **Political Fiction** - Animal Farm
+
+**Add more books:**
+- As librarian through the web interface
+- Via Google Books API integration
+- By modifying `create_sample_books.py` script
 
 ---
 
@@ -337,96 +414,136 @@ POST   /api/reviews/            # Create review
 DELETE /api/reviews/{id}/       # Delete review (admin only)
 ```
 
-### Dashboard
+### Dashboard & Statistics
 ```
 GET    /api/dashboard/          # Get user dashboard data
+GET    /api/statistics/         # Get library analytics & statistics
+```
+
+### User Management
+```
+GET    /api/profiles/           # List profiles
+GET    /api/profiles/{id}/      # Get profile details
+PATCH  /api/profiles/{id}/      # Update profile
+GET    /api/activate/{uid}/{token}/  # Activate user account
 ```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Backend won't start
+### Docker Issues
 
-**Check Python version:**
-```bash
-python --version  # Should be 3.8+
+**Docker Desktop not running:**
+```powershell
+# Ensure Docker Desktop is running
+docker info
 ```
 
-**Reinstall dependencies:**
+**Services won't start:**
 ```bash
-pip install -r requirements.txt
+# View logs
+docker-compose logs -f
+
+# Restart services
+docker-compose restart
+
+# Full rebuild
+docker-compose down
+docker-compose up -d --build
 ```
 
-**Reset database:**
+**Port conflicts:**
 ```bash
+# Check what's using the ports
+netstat -ano | findstr :3000
+netstat -ano | findstr :8000
+netstat -ano | findstr :5432
+```
+
+**Reset everything:**
+```bash
+# Stop and remove all containers, volumes
+docker-compose down -v
+docker-compose up -d --build
+```
+
+### Database Issues
+
+**Reset database (Docker):**
+```bash
+docker-compose down -v  # Removes volumes
+docker-compose up -d
+docker-compose exec backend python manage.py migrate
+docker-compose exec backend python create_test_users.py
+```
+
+### Application Issues
+
+**No users exist:**
+```bash
+docker-compose exec backend python create_test_users.py
+```
+
+**No books showing:**
+```bash
+docker-compose exec backend python create_sample_books.py
+```
+
+**Login fails:**
+- Ensure test credentials: `reader_user` / `Test1234`
+- Passwords are case-sensitive
+
+### Manual Setup Issues
+
+**Backend won't start:**
+```bash
+pip install -r django/requirements.txt
 cd django
 python manage.py migrate
 ```
 
-### Frontend won't start
-
-**Check Node version:**
-```bash
-node --version  # Should be 14+
-```
-
-**Clear and reinstall:**
+**Frontend won't start:**
 ```bash
 cd frontend
 rm -rf node_modules package-lock.json
 npm install
 ```
 
-**Clear browser cache:**
-- Press `Ctrl + Shift + R` to hard refresh
-
-### Login fails
-
-**Ensure users are activated:**
-```bash
-python setup_test_data.py
-```
-
-**Check credentials:**
-- Username: `reader_user`
-- Password: `ReaderPass123!`
-- Password is case-sensitive and includes special character
-
-### CORS errors
-
-**Verify backend settings:**
-- CORS is configured for `http://localhost:3000`
-- Check `django/library_management_project/settings.py`
-
-### Books not showing
-
-**Populate catalog:**
-```bash
-python create_book_catalog.py
-```
-
 ---
 
 ## 🔄 Resetting the System
 
-To start fresh with clean data:
+### Docker Reset
 
 ```bash
-# Stop both servers (Ctrl+C)
+# Stop and remove everything (including database)
+docker-compose down -v
+
+# Rebuild and start
+docker-compose up -d --build
+
+# Create fresh data
+docker-compose exec backend python create_test_users.py
+docker-compose exec backend python create_sample_books.py
+```
+
+### Manual Setup Reset
+
+```bash
+# Stop servers (Ctrl+C)
 
 # Reset database
 cd django
-del db.sqlite3  # Windows
-# rm db.sqlite3  # Linux/Mac
+rm db.sqlite3  # Linux/Mac
+# del db.sqlite3  # Windows
 
 # Recreate database
 python manage.py migrate
 
 # Recreate test data
-cd ..
-python setup_test_data.py
-python create_book_catalog.py
+python create_test_users.py
+python create_sample_books.py
 
 # Restart servers
 ```
@@ -438,30 +555,65 @@ python create_book_catalog.py
 ### Adding New Books
 
 **Manual addition** (as librarian):
-1. Login as `librarian_user`
+1. Login as `librarian_user` / `Test1234`
 2. Click "Add Book" button
 3. Search Google Books or enter manually
 
 **Bulk addition** (via script):
-1. Edit `create_book_catalog.py`
-2. Add books to `BOOK_CATALOG` dictionary
-3. Run: `python create_book_catalog.py`
+1. Edit `django/create_sample_books.py`
+2. Add books to `sample_books` list
+3. Run: `docker-compose exec backend python create_sample_books.py`
 
-### Modifying User Roles
+### Managing Users
 
-**Via Django Admin:**
-1. Navigate to `http://127.0.0.1:8000/admin`
-2. Login with admin credentials
-3. Edit users under "Library" > "Custom users"
-
-**Via Django Shell:**
+**Create additional users:**
 ```bash
+# Docker
+docker-compose exec backend python manage.py createsuperuser
+
+# Manual
+python manage.py createsuperuser
+```
+
+**Modify user roles (Django Shell):**
+```bash
+# Docker
+docker-compose exec backend python manage.py shell
+
+# Manual
 python manage.py shell
+
+# Then in shell:
 >>> from django.contrib.auth import get_user_model
 >>> User = get_user_model()
 >>> user = User.objects.get(username='username')
 >>> user.role = 'librarian'  # or 'admin' or 'reader'
 >>> user.save()
+```
+
+### Running Tests
+
+**Django tests:**
+```bash
+# Docker
+docker-compose exec backend python manage.py test
+
+# Or use test script
+.\test.ps1
+
+# Manual
+cd django
+python manage.py test
+```
+
+**React tests:**
+```bash
+# Docker
+docker-compose exec frontend npm test
+
+# Manual
+cd frontend
+npm test
 ```
 
 ---
@@ -530,11 +682,22 @@ This project is for educational purposes.
 
 For issues or questions:
 - Check the **Troubleshooting** section
-- Review the **API documentation**
-- Ensure all dependencies are installed
+- Review **DOCKER_README.md** for detailed Docker documentation
+- See **QUICKSTART.md** for quick start guide
+- Check **FEATURES.md** for complete feature list
 
 ---
 
-**Version:** 1.0.0  
-**Status:** Production Ready  
-**Last Updated:** October 2025
+## 📖 Additional Documentation
+
+- **[DOCKER_README.md](DOCKER_README.md)** - Comprehensive Docker guide
+- **[QUICKSTART.md](QUICKSTART.md)** - Quick start guide
+- **[FEATURES.md](FEATURES.md)** - Complete feature documentation
+- **[django/tests.py](django/library/tests.py)** - 27 unit tests for API
+
+---
+
+**Version:** 2.0.0  
+**Status:** Production Ready (Docker + PostgreSQL)  
+**Last Updated:** October 2025  
+**Tests:** 27 passing Django tests + React component tests

@@ -17,6 +17,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
+from django.db.models import Count, Q, Avg
+from datetime import timedelta
 
 
 
@@ -323,4 +325,105 @@ class UserDashboardView(APIView):
             "active_reservations": reservations_data,
             "reviews": reviews_data
         })
+
+
+class StatisticsView(APIView):
+    """
+    Library statistics dashboard
     
+    Returns comprehensive statistics including:
+    - Most borrowed books
+    - Most active users
+    - Overdue loans count
+    - Available books count
+    - Total loans by status
+    - Average book ratings
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Compile comprehensive library statistics"""
+        
+        # Most borrowed books (top 10)
+        most_borrowed = (
+            Loan.objects
+            .values('book__id', 'book__title', 'book__author')
+            .annotate(loan_count=Count('id'))
+            .order_by('-loan_count')[:10]
+        )
+        
+        # Most active users (top 10)
+        most_active_users = (
+            Loan.objects
+            .values('user__id', 'user__username')
+            .annotate(loan_count=Count('id'))
+            .order_by('-loan_count')[:10]
+        )
+        
+        # Overdue loans count
+        today = timezone.now().date()
+        overdue_count = Loan.objects.filter(
+            status='ACTIVE',
+            due_date__lt=today
+        ).count()
+        
+        # Books availability statistics
+        total_books = Book.objects.count()
+        available_books = Book.objects.filter(is_available=True).count()
+        borrowed_books = total_books - available_books
+        
+        # Loans by status
+        loans_by_status = {
+            'active': Loan.objects.filter(status='ACTIVE').count(),
+            'returned': Loan.objects.filter(status='RETURNED').count(),
+            'overdue': Loan.objects.filter(status='OVERDUE').count(),
+        }
+        
+        # Total loans in last 30 days
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        recent_loans = Loan.objects.filter(loan_date__gte=thirty_days_ago).count()
+        
+        # Average book ratings
+        books_with_ratings = (
+            Review.objects
+            .values('book__id', 'book__title')
+            .annotate(
+                avg_rating=Avg('rating'),
+                review_count=Count('id')
+            )
+            .filter(review_count__gte=1)
+            .order_by('-avg_rating')[:10]
+        )
+        
+        # Reservations statistics
+        active_reservations = Reservation.objects.filter(status='ACTIVE').count()
+        expired_reservations = Reservation.objects.filter(status='EXPIRED').count()
+        
+        # Categories distribution
+        categories_distribution = (
+            Book.objects
+            .values('category')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+        
+        return Response({
+            'most_borrowed_books': list(most_borrowed),
+            'most_active_users': list(most_active_users),
+            'books_statistics': {
+                'total': total_books,
+                'available': available_books,
+                'borrowed': borrowed_books,
+            },
+            'loans_statistics': {
+                'by_status': loans_by_status,
+                'overdue_count': overdue_count,
+                'recent_loans_30_days': recent_loans,
+            },
+            'reservations_statistics': {
+                'active': active_reservations,
+                'expired': expired_reservations,
+            },
+            'top_rated_books': list(books_with_ratings),
+            'categories_distribution': list(categories_distribution),
+        })

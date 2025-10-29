@@ -255,3 +255,123 @@ class UserDashboardTestCase(APITestCase):
         self.assertEqual(data["active_reservations"], [])
         self.assertEqual(data["reviews"], [])
 
+
+class StatisticsAPITestCase(APITestCase):
+    """Tests statistics endpoint for library analytics"""
+    
+    def setUp(self):
+        """Create comprehensive test data for statistics"""
+        self.user = CustomUser.objects.create_user(username="statsuser", password="Pass1234", role="librarian")
+        self.client.force_authenticate(user=self.user)
+        
+        # Create books
+        self.book1 = Book.objects.create(
+            title="Popular Book", 
+            author="Author 1", 
+            category="Fiction", 
+            added_by=self.user
+        )
+        self.book2 = Book.objects.create(
+            title="Less Popular Book", 
+            author="Author 2", 
+            category="Science", 
+            added_by=self.user
+        )
+        
+        # Create loans for statistics
+        Loan.objects.create(book=self.book1, user=self.user, due_date="2025-12-31", status="ACTIVE")
+        Loan.objects.create(book=self.book1, user=self.user, due_date="2025-11-30", status="RETURNED")
+        
+        # Create reviews
+        Review.objects.create(book=self.book1, user=self.user, rating=5, comment="Great!")
+        
+    def test_statistics_structure(self):
+        """Verify statistics endpoint returns all required data"""
+        url = "/api/statistics/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        data = response.data
+        self.assertIn("most_borrowed_books", data)
+        self.assertIn("most_active_users", data)
+        self.assertIn("books_statistics", data)
+        self.assertIn("loans_statistics", data)
+        self.assertIn("reservations_statistics", data)
+        self.assertIn("top_rated_books", data)
+        self.assertIn("categories_distribution", data)
+        
+    def test_books_statistics(self):
+        """Test book availability statistics"""
+        url = "/api/statistics/"
+        response = self.client.get(url)
+        data = response.data
+        
+        self.assertEqual(data["books_statistics"]["total"], 2)
+        self.assertGreaterEqual(data["books_statistics"]["available"], 0)
+        self.assertGreaterEqual(data["books_statistics"]["borrowed"], 0)
+        
+    def test_most_borrowed_books(self):
+        """Verify most borrowed books ranking"""
+        url = "/api/statistics/"
+        response = self.client.get(url)
+        data = response.data
+        
+        most_borrowed = data["most_borrowed_books"]
+        self.assertGreater(len(most_borrowed), 0)
+        self.assertIn("loan_count", most_borrowed[0])
+        
+    def test_categories_distribution(self):
+        """Test category distribution statistics"""
+        url = "/api/statistics/"
+        response = self.client.get(url)
+        data = response.data
+        
+        categories = data["categories_distribution"]
+        self.assertEqual(len(categories), 2)  # Fiction and Science
+        
+
+class GoogleBooksAPITestCase(APITestCase):
+    """Tests Google Books API integration"""
+    
+    def test_search_books(self):
+        """Test successful search with query parameter"""
+        url = "/api/google-books/?q=python"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+    def test_search_missing_query(self):
+        """Verify error handling when query parameter is missing"""
+        url = "/api/google-books/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileAPITestCase(APITestCase):
+    """Tests user profile management"""
+    
+    def setUp(self):
+        """Create user and profile for testing"""
+        self.user = CustomUser.objects.create_user(username="profileuser", password="Pass1234", role="reader")
+        self.client.force_authenticate(user=self.user)
+        Profile.objects.get_or_create(user=self.user)
+        
+    def test_update_profile(self):
+        """Test profile update with phone and address"""
+        url = f"/api/profiles/{self.user.profile.id}/"
+        data = {
+            "phone_number": "123456789",
+            "address": "123 Test Street"
+        }
+        response = self.client.patch(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["phone_number"], "123456789")
+        
+    def test_profile_privacy(self):
+        """Verify users can only access their own profile"""
+        other_user = CustomUser.objects.create_user(username="otheruser", password="Pass1234")
+        Profile.objects.get_or_create(user=other_user)
+        
+        url = f"/api/profiles/{other_user.profile.id}/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
