@@ -100,13 +100,14 @@ jobs:
     - name: Install dependencies
       working-directory: ./frontend
       run: |
-        echo "Cleaning npm cache..."
-        npm cache clean --force
-        echo "Installing dependencies..."
-        npm install --legacy-peer-deps
-        echo "Verifying react-router-dom installation..."
-        npm list react-router-dom || echo "react-router-dom not found!"
-        ls -la node_modules/react-router-dom || echo "react-router-dom directory missing!"
+        echo "Installing dependencies with --force flag..."
+        npm install --force
+        echo ""
+        echo "=== Verifying critical dependencies ==="
+        npm list react-router-dom react react-dom axios || true
+        echo ""
+        echo "=== Checking node_modules ==="
+        ls -la node_modules | grep -E "react|axios" || true
 
     - name: Run tests
       working-directory: ./frontend
