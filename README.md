@@ -1,8 +1,10 @@
 # Library Management System
 
+[![Tests](https://github.com/chrispl89/library_management_system/actions/workflows/tests.yml/badge.svg)](https://github.com/chrispl89/library_management_system/actions/workflows/tests.yml)
 [![Status](https://img.shields.io/badge/status-production--ready-green)](https://github.com/chrispl89/library_management_system)
 [![Django](https://img.shields.io/badge/Django-5.1.6-green)](https://www.djangoproject.com/)
 [![React](https://img.shields.io/badge/React-19.2.0-blue)](https://reactjs.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-blue)](https://www.docker.com/)
 
 A modern, full-stack library management system with Django REST Framework backend and React frontend. Features include user management with role-based access, book cataloging, loan tracking, reservations, and review system.
 

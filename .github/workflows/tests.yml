@@ -1,0 +1,203 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  django-tests:
+    name: Django Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: library_db_test
+          POSTGRES_USER: library_user
+          POSTGRES_PASSWORD: library_pass123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U library_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('django/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r django/requirements.txt
+
+    - name: Set up environment variables
+      run: |
+        echo "DATABASE_URL=postgresql://library_user:library_pass123@localhost:5432/library_db_test" >> $GITHUB_ENV
+        echo "DJANGO_SECRET_KEY=test-secret-key-for-ci-only" >> $GITHUB_ENV
+        echo "DJANGO_DEBUG=True" >> $GITHUB_ENV
+
+    - name: Wait for PostgreSQL
+      run: |
+        echo "Waiting for PostgreSQL to be ready..."
+        for i in {1..30}; do
+          if pg_isready -h localhost -U library_user; then
+            echo "PostgreSQL is ready!"
+            exit 0
+          fi
+          echo "Waiting... ($i/30)"
+          sleep 2
+        done
+        echo "PostgreSQL failed to start"
+        exit 1
+
+    - name: Run Django migrations
+      working-directory: ./django
+      run: |
+        python manage.py migrate --noinput
+      env:
+        DATABASE_URL: postgresql://library_user:library_pass123@localhost:5432/library_db_test
+
+    - name: Run Django tests
+      working-directory: ./django
+      run: |
+        python manage.py test --verbosity=2
+      env:
+        DATABASE_URL: postgresql://library_user:library_pass123@localhost:5432/library_db_test
+
+  react-tests:
+    name: React Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Cache Node modules
+      uses: actions/cache@v4
+      with:
+        path: frontend/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci --legacy-peer-deps
+
+    - name: Run tests
+      working-directory: ./frontend
+      run: npm test -- --watchAll=false --passWithNoTests --ci
+      env:
+        CI: true
+
+    - name: Build
+      working-directory: ./frontend
+      run: npm run build
+      env:
+        CI: false
+        REACT_APP_API_URL: http://localhost:8000
+
+  docker-build:
+    name: Docker Build & Integration Test
+    runs-on: ubuntu-latest
+    needs: [django-tests, react-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Test Docker Compose configuration
+      run: |
+        docker-compose config
+
+    - name: Build Docker images
+      run: |
+        docker-compose build
+
+    - name: Start Docker services
+      run: |
+        docker-compose up -d
+        sleep 30
+
+    - name: Check running containers
+      run: |
+        docker-compose ps
+
+    - name: Check backend health
+      run: |
+        echo "Waiting for backend to be ready..."
+        for i in {1..60}; do
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/books/ || echo "000")
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
+            echo "Backend is healthy (HTTP $STATUS)"
+            exit 0
+          fi
+          echo "Waiting for backend... ($i/60) - HTTP $STATUS"
+          sleep 3
+        done
+        echo "Backend failed to start"
+        echo "=== Backend logs ==="
+        docker-compose logs backend
+        exit 1
+
+    - name: Check frontend health
+      run: |
+        echo "Checking frontend..."
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+        if [ "$STATUS" != "200" ]; then
+          echo "Frontend health check failed (HTTP $STATUS)"
+          echo "=== Frontend logs ==="
+          docker-compose logs frontend
+          exit 1
+        fi
+        echo "Frontend is healthy"
+
+    - name: Create test data
+      run: |
+        docker-compose exec -T backend python create_test_users.py || echo "Test users already exist"
+        docker-compose exec -T backend python create_sample_books.py || echo "Sample books already exist"
+
+    - name: Run Django tests in Docker
+      run: |
+        docker-compose exec -T backend python manage.py test --verbosity=2
+
+    - name: Show logs on failure
+      if: failure()
+      run: |
+        echo "=== Backend logs ==="
+        docker-compose logs backend
+        echo "=== Frontend logs ==="
+        docker-compose logs frontend
+        echo "=== Database logs ==="
+        docker-compose logs db
+
+    - name: Stop Docker services
+      if: always()
+      run: |
+        docker-compose down -v
