@@ -94,20 +94,25 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
 
-    - name: Install dependencies
+    - name: Clean install dependencies
       working-directory: ./frontend
       run: |
-        echo "Installing dependencies with --force flag..."
+        echo "Removing package-lock.json temporarily..."
+        rm -f package-lock.json
+        echo ""
+        echo "Removing node_modules if exists..."
+        rm -rf node_modules
+        echo ""
+        echo "Installing dependencies with --force..."
         npm install --force
         echo ""
-        echo "=== Verifying critical dependencies ==="
-        npm list react-router-dom react react-dom axios || true
+        echo "=== Installation complete ==="
+        echo "Checking if react-router-dom exists..."
+        test -d node_modules/react-router-dom && echo "✓ react-router-dom installed" || echo "✗ react-router-dom MISSING"
         echo ""
-        echo "=== Checking node_modules ==="
-        ls -la node_modules | grep -E "react|axios" || true
+        echo "=== Package versions ==="
+        npm list react react-dom react-router-dom axios 2>/dev/null || echo "Some packages not listed"
 
     - name: Run tests
       working-directory: ./frontend
