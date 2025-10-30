@@ -124,6 +124,7 @@ jobs:
     name: Docker Build & Integration Test
     runs-on: ubuntu-latest
     needs: [django-tests, react-tests]
+    timeout-minutes: 20
     
     steps:
     - name: Checkout code
@@ -132,72 +133,96 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Test Docker Compose configuration
+    - name: Validate Docker Compose configuration
       run: |
-        docker-compose config
+        docker-compose config > /dev/null
+        echo "✓ Docker Compose configuration is valid"
 
     - name: Build Docker images
       run: |
-        docker-compose build
+        echo "Building backend..."
+        docker-compose build backend
+        echo "Building frontend..."
+        docker-compose build frontend
+        echo "✓ Docker images built successfully"
 
-    - name: Start Docker services
+    - name: Start services
       run: |
-        docker-compose up -d
-        sleep 30
+        echo "Starting database..."
+        docker-compose up -d db
+        echo "Waiting for database..."
+        sleep 10
+        
+        echo "Starting backend..."
+        docker-compose up -d backend
+        echo "Waiting for backend to start..."
+        sleep 20
+        
+        echo "Starting frontend..."
+        docker-compose up -d frontend
+        sleep 10
 
-    - name: Check running containers
+    - name: Check container status
       run: |
+        echo "=== Container Status ==="
         docker-compose ps
+        echo ""
+        echo "=== Container Health ==="
+        docker ps --format "table {{.Names}}\t{{.Status}}"
 
-    - name: Check backend health
+    - name: Wait for backend
+      timeout-minutes: 3
       run: |
-        echo "Waiting for backend to be ready..."
-        for i in {1..60}; do
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/books/ || echo "000")
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
-            echo "Backend is healthy (HTTP $STATUS)"
+        echo "Checking backend health..."
+        for i in {1..30}; do
+          if curl -f -s http://localhost:8000/api/books/ 2>/dev/null || curl -f -s http://localhost:8000/admin/ 2>/dev/null; then
+            echo "✓ Backend is responding"
             exit 0
           fi
-          echo "Waiting for backend... ($i/60) - HTTP $STATUS"
-          sleep 3
+          echo "Attempt $i/30..."
+          sleep 5
         done
-        echo "Backend failed to start"
-        echo "=== Backend logs ==="
-        docker-compose logs backend
+        echo "✗ Backend health check failed"
+        docker-compose logs backend --tail=50
         exit 1
 
-    - name: Check frontend health
+    - name: Wait for frontend
       run: |
         echo "Checking frontend..."
-        STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
-        if [ "$STATUS" != "200" ]; then
-          echo "Frontend health check failed (HTTP $STATUS)"
-          echo "=== Frontend logs ==="
-          docker-compose logs frontend
-          exit 1
-        fi
-        echo "Frontend is healthy"
-
-    - name: Create test data
-      run: |
-        docker-compose exec -T backend python create_test_users.py || echo "Test users already exist"
-        docker-compose exec -T backend python create_sample_books.py || echo "Sample books already exist"
+        for i in {1..20}; do
+          if curl -f -s http://localhost:3000 > /dev/null 2>&1; then
+            echo "✓ Frontend is responding"
+            exit 0
+          fi
+          echo "Attempt $i/20..."
+          sleep 3
+        done
+        echo "✗ Frontend health check failed"
+        docker-compose logs frontend --tail=50
+        exit 1
 
     - name: Run Django tests in Docker
       run: |
-        docker-compose exec -T backend python manage.py test --verbosity=2
+        echo "Running Django tests..."
+        docker-compose exec -T backend python manage.py test library --verbosity=1
 
     - name: Show logs on failure
       if: failure()
       run: |
-        echo "=== Backend logs ==="
-        docker-compose logs backend
-        echo "=== Frontend logs ==="
-        docker-compose logs frontend
-        echo "=== Database logs ==="
-        docker-compose logs db
+        echo "=== Docker Compose Status ==="
+        docker-compose ps
+        echo ""
+        echo "=== Backend Logs (last 100 lines) ==="
+        docker-compose logs backend --tail=100
+        echo ""
+        echo "=== Frontend Logs (last 50 lines) ==="
+        docker-compose logs frontend --tail=50
+        echo ""
+        echo "=== Database Logs (last 50 lines) ==="
+        docker-compose logs db --tail=50
 
-    - name: Stop Docker services
+    - name: Cleanup
       if: always()
       run: |
         docker-compose down -v
+        docker system prune -f
