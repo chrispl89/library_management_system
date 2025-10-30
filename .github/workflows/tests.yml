@@ -119,37 +119,37 @@ jobs:
 
     - name: Validate Docker Compose configuration
       run: |
-        docker-compose config > /dev/null
+        docker compose config > /dev/null
         echo "✓ Docker Compose configuration is valid"
 
     - name: Build Docker images
       run: |
         echo "Building backend..."
-        docker-compose build backend
+        docker compose build backend
         echo "Building frontend..."
-        docker-compose build frontend
+        docker compose build frontend
         echo "✓ Docker images built successfully"
 
     - name: Start services
       run: |
         echo "Starting database..."
-        docker-compose up -d db
+        docker compose up -d db
         echo "Waiting for database..."
         sleep 10
         
         echo "Starting backend..."
-        docker-compose up -d backend
+        docker compose up -d backend
         echo "Waiting for backend to start..."
         sleep 20
         
         echo "Starting frontend..."
-        docker-compose up -d frontend
+        docker compose up -d frontend
         sleep 10
 
     - name: Check container status
       run: |
         echo "=== Container Status ==="
-        docker-compose ps
+        docker compose ps
         echo ""
         echo "=== Container Health ==="
         docker ps --format "table {{.Names}}\t{{.Status}}"
@@ -167,7 +167,7 @@ jobs:
           sleep 5
         done
         echo "✗ Backend health check failed"
-        docker-compose logs backend --tail=50
+        docker compose logs backend --tail=50
         exit 1
 
     - name: Wait for frontend
@@ -182,31 +182,31 @@ jobs:
           sleep 3
         done
         echo "✗ Frontend health check failed"
-        docker-compose logs frontend --tail=50
+        docker compose logs frontend --tail=50
         exit 1
 
     - name: Run Django tests in Docker
       run: |
         echo "Running Django tests..."
-        docker-compose exec -T backend python manage.py test library --verbosity=1
+        docker compose exec -T backend python manage.py test library --verbosity=1
 
     - name: Show logs on failure
       if: failure()
       run: |
         echo "=== Docker Compose Status ==="
-        docker-compose ps
+        docker compose ps
         echo ""
         echo "=== Backend Logs (last 100 lines) ==="
-        docker-compose logs backend --tail=100
+        docker compose logs backend --tail=100
         echo ""
         echo "=== Frontend Logs (last 50 lines) ==="
-        docker-compose logs frontend --tail=50
+        docker compose logs frontend --tail=50
         echo ""
         echo "=== Database Logs (last 50 lines) ==="
-        docker-compose logs db --tail=50
+        docker compose logs db --tail=50
 
     - name: Cleanup
       if: always()
       run: |
-        docker-compose down -v
+        docker compose down -v
         docker system prune -f
