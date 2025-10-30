@@ -1,6 +1,27 @@
 from pathlib import Path
 import os
-from decouple import config, Csv
+
+# Try to import decouple, fall back to os.environ if not available (CI environment)
+try:
+    from decouple import config, Csv
+except ImportError:
+    # Fallback for CI/CD environments without python-decouple
+    def config(key, default=None, cast=None):
+        value = os.environ.get(key, default)
+        if cast and value is not None:
+            # Handle callable cast (like Csv())
+            if callable(cast):
+                return cast(value)
+            elif cast == bool:
+                return value.lower() in ('true', '1', 'yes')
+            else:
+                return cast(value)
+        return value
+    
+    def Csv():
+        """Returns a function that splits CSV string"""
+        return lambda value: [item.strip() for item in value.split(',') if item.strip()]
+
 import dj_database_url
 
 # BASE_DIR set using Path - this is the preferred way
